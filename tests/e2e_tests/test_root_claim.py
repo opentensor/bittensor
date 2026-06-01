@@ -20,6 +20,12 @@ from tests.e2e_tests.utils.set_subnet_moving_price import (
 )
 
 PROOF_COUNTER = 2
+# Max epochs to wait for an emission/auto-claim to move a balance before failing.
+# A strict increase isn't guaranteed in any single epoch window: root dividends to
+# a small stake can round to ~0, the distribution can land a few blocks past the
+# boundary, and random auto-claims may skip a coldkey in a given epoch. So we poll
+# across a few epochs for the increase rather than demanding it at one boundary.
+MAX_EPOCHS_FOR_INCREASE = 3
 
 
 def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
@@ -209,19 +215,28 @@ async def test_root_claim_swap_async(
 
     # Proof that ROOT stake is changing each last epoch block
     while proof_counter > 0:
-        next_epoch_start_block = (
-            await async_subtensor.subnets.get_next_epoch_start_block(
-                netuid=root_sn.netuid
+        # Poll across up to MAX_EPOCHS_FOR_INCREASE epochs for the stake to grow.
+        charlie_root_stake = prev_root_stake
+        epochs_left = MAX_EPOCHS_FOR_INCREASE
+        while charlie_root_stake <= prev_root_stake and epochs_left > 0:
+            next_epoch_start_block = (
+                await async_subtensor.subnets.get_next_epoch_start_block(
+                    netuid=root_sn.netuid
+                )
             )
-        )
-        await async_subtensor.wait_for_block(block=next_epoch_start_block + 4)
+            await async_subtensor.wait_for_block(block=next_epoch_start_block + 4)
 
-        charlie_root_stake = await async_subtensor.staking.get_stake(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=root_sn.netuid,
+            charlie_root_stake = await async_subtensor.staking.get_stake(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=root_sn.netuid,
+            )
+            epochs_left -= 1
+
+        assert charlie_root_stake > prev_root_stake, (
+            f"Stake did not increase over {MAX_EPOCHS_FOR_INCREASE} epochs: "
+            f"{charlie_root_stake} <= {prev_root_stake}"
         )
-        assert charlie_root_stake > prev_root_stake
         prev_root_stake = charlie_root_stake
         proof_counter -= 1
 
@@ -670,29 +685,37 @@ def test_root_claim_keep_with_random_auto_claims(
 
     # Wait for epochs and check that stake increases due to random auto claims
     while proof_counter > 0:
-        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
-            root_sn.netuid
-        )
-        # +4 blocks: root dividend emission and the auto-claim land a few blocks
-        # into the new epoch, not at the exact boundary (see test_root_claim_swap_async).
-        subtensor.wait_for_block(next_epoch_start_block + 4)
+        # A random auto-claim may skip Charlie in any single epoch, and the claim
+        # lands a few blocks past the boundary, so poll across up to
+        # MAX_EPOCHS_FOR_INCREASE epochs (+4 blocks each) for the claim to land.
+        claimed_stake_charlie = prev_claimed_stake_charlie
+        root_claimed_charlie = prev_root_claimed_charlie
+        epochs_left = MAX_EPOCHS_FOR_INCREASE
+        while claimed_stake_charlie <= prev_claimed_stake_charlie and epochs_left > 0:
+            next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+                root_sn.netuid
+            )
+            subtensor.wait_for_block(next_epoch_start_block + 4)
 
-        # Check Charlie stake and claimed
-        claimed_stake_charlie = subtensor.staking.get_stake(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=sn2.netuid,
-        )
+            # Check Charlie stake and claimed
+            claimed_stake_charlie = subtensor.staking.get_stake(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=sn2.netuid,
+            )
+            root_claimed_charlie = subtensor.staking.get_root_claimed(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=sn2.netuid,
+            )
+            epochs_left -= 1
+
         assert claimed_stake_charlie > prev_claimed_stake_charlie, (
-            f"Stake did not increase: {claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
+            f"Stake did not increase over {MAX_EPOCHS_FOR_INCREASE} epochs: "
+            f"{claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
         )
         prev_claimed_stake_charlie = claimed_stake_charlie
 
-        root_claimed_charlie = subtensor.staking.get_root_claimed(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=sn2.netuid,
-        )
         assert root_claimed_charlie > prev_root_claimed_charlie, (
             f"Root claimed did not increase: {root_claimed_charlie} <= {prev_root_claimed_charlie}"
         )
@@ -805,29 +828,37 @@ async def test_root_claim_keep_with_random_auto_claims_async(
 
     # Wait for epochs and check that stake increases due to random auto claims
     while proof_counter > 0:
-        next_epoch_start_block = (
-            await async_subtensor.subnets.get_next_epoch_start_block(root_sn.netuid)
-        )
-        # +4 blocks: root dividend emission and the auto-claim land a few blocks
-        # into the new epoch, not at the exact boundary (see test_root_claim_swap_async).
-        await async_subtensor.wait_for_block(next_epoch_start_block + 4)
+        # A random auto-claim may skip Charlie in any single epoch, and the claim
+        # lands a few blocks past the boundary, so poll across up to
+        # MAX_EPOCHS_FOR_INCREASE epochs (+4 blocks each) for the claim to land.
+        claimed_stake_charlie = prev_claimed_stake_charlie
+        root_claimed_charlie = prev_root_claimed_charlie
+        epochs_left = MAX_EPOCHS_FOR_INCREASE
+        while claimed_stake_charlie <= prev_claimed_stake_charlie and epochs_left > 0:
+            next_epoch_start_block = (
+                await async_subtensor.subnets.get_next_epoch_start_block(root_sn.netuid)
+            )
+            await async_subtensor.wait_for_block(next_epoch_start_block + 4)
 
-        # Check Charlie stake and claimed
-        claimed_stake_charlie = await async_subtensor.staking.get_stake(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=sn2.netuid,
-        )
+            # Check Charlie stake and claimed
+            claimed_stake_charlie = await async_subtensor.staking.get_stake(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=sn2.netuid,
+            )
+            root_claimed_charlie = await async_subtensor.staking.get_root_claimed(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=sn2.netuid,
+            )
+            epochs_left -= 1
+
         assert claimed_stake_charlie > prev_claimed_stake_charlie, (
-            f"Stake did not increase: {claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
+            f"Stake did not increase over {MAX_EPOCHS_FOR_INCREASE} epochs: "
+            f"{claimed_stake_charlie} <= {prev_claimed_stake_charlie}"
         )
         prev_claimed_stake_charlie = claimed_stake_charlie
 
-        root_claimed_charlie = await async_subtensor.staking.get_root_claimed(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=sn2.netuid,
-        )
         assert root_claimed_charlie > prev_root_claimed_charlie, (
             f"Root claimed did not increase: {root_claimed_charlie} <= {prev_root_claimed_charlie}"
         )
