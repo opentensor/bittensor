@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.4.0 /2026-05-28
+
+## What's Changed
+* Fixes tests in subtensor 2569 by @thewhaleking in https://github.com/latent-to/bittensor/pull/3355
+* Improves monitor_requirements_size_master workflow by @thewhaleking in https://github.com/latent-to/bittensor/pull/3357
+* PR guard workflow by @thewhaleking in https://github.com/latent-to/bittensor/pull/3358
+* Support `Conviction v2` by @basfroman in https://github.com/latent-to/bittensor/pull/3361
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.3.2...v10.4.0
+
 ## 10.3.2 /2026-05-15
 
 ## What's Changed
