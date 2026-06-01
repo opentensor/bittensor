@@ -2658,11 +2658,13 @@ async def test_set_delegate_take_increase(
 
 @pytest.mark.asyncio
 async def test_get_all_subnets_info_success(mocker, subtensor):
-    """Test get_all_subnets_info returns correct data when subnet information is found."""
+    """Test get_all_subnets_info resolves the block hash once and fans it out to both children."""
     # Prep
     block = 123
 
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
     mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(subtensor, "get_subnet_prices")
     mocker.patch.object(
         async_subtensor.SubnetInfo,
         "list_from_dicts",
@@ -2672,17 +2674,46 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
     await subtensor.get_all_subnets_info(block)
 
     # Asserts
+    mocked_determine_block_hash.assert_awaited_once_with(block, None, False)
     subtensor.query_runtime_api.assert_awaited_once_with(
         runtime_api="SubnetInfoRuntimeApi",
         method="get_subnets_info_v2",
         params=[],
-        block=block,
-        block_hash=None,
-        reuse_block=False,
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    subtensor.get_subnet_prices.assert_awaited_once_with(
+        block_hash=mocked_determine_block_hash.return_value,
     )
     async_subtensor.SubnetInfo.list_from_dicts.assert_called_once_with(
         subtensor.query_runtime_api.return_value,
     )
+
+
+@pytest.mark.asyncio
+async def test_get_all_subnets_info_resolves_block_hash_once(subtensor, mocker):
+    """Regression for #3129: with an integer ``block`` the two gathered children share a
+    single block->hash resolution instead of each calling ``get_block_hash`` (was 2 calls)."""
+    # Prep
+    block = 123
+    fake_block_hash = "0xblockhash"
+    mocked_get_block_hash = mocker.patch.object(
+        subtensor, "get_block_hash", return_value=fake_block_hash
+    )
+    # Keep both gathered children real (real determine_block_hash) but stub their leaf calls.
+    subtensor.substrate.runtime_call = mocker.AsyncMock()
+    empty_prices = mocker.AsyncMock(autospec=list)
+    empty_prices.__aiter__.return_value = iter([])
+    subtensor.substrate.query_map = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query_map,
+        return_value=empty_prices,
+    )
+    mocker.patch.object(async_subtensor.SubnetInfo, "list_from_dicts")
+
+    # Call
+    await subtensor.get_all_subnets_info(block)
+
+    # Assert: exactly one block->hash lookup for the whole gather.
+    mocked_get_block_hash.assert_awaited_once_with(block)
 
 
 @pytest.mark.asyncio

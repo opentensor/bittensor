@@ -1510,9 +1510,10 @@ class AsyncMetagraph(NumpyOrTorch):
                 self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
+        block_hash = await subtensor.determine_block_hash(block)
         n_subnets_, subnets = await asyncio.gather(
-            subtensor.get_total_subnets(block=block),
-            subtensor.get_all_subnets_netuid(block=block),
+            subtensor.get_total_subnets(block_hash=block_hash),
+            subtensor.get_all_subnets_netuid(block_hash=block_hash),
         )
         n_subnets = n_subnets_ or 0
         for item in data:
@@ -1601,10 +1602,13 @@ class AsyncMetagraph(NumpyOrTorch):
         )
         if metagraph_info:
             self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
+        block_hash = await self.subtensor.determine_block_hash(block)
         self.mechanism_count, self.emissions_split = await asyncio.gather(
-            self.subtensor.get_mechanism_count(netuid=self.netuid, block=block),
+            self.subtensor.get_mechanism_count(
+                netuid=self.netuid, block_hash=block_hash
+            ),
             self.subtensor.get_mechanism_emission_split(
-                netuid=self.netuid, block=block
+                netuid=self.netuid, block_hash=block_hash
             ),
         )
 

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from bittensor.core import settings
-from bittensor.core.metagraph import Metagraph
+from bittensor.core.metagraph import AsyncMetagraph, Metagraph
 from bittensor.core.subtensor import Subtensor
 
 
@@ -248,3 +248,52 @@ def test_copy(mock_environment):
         metagraph.neurons, copied_metagraph.neurons
     ):
         assert original_neuron is copied_neuron
+
+
+@pytest.mark.asyncio
+async def test_async_process_root_weights_resolves_block_hash_once(mocker):
+    """Regression for #3129: AsyncMetagraph._process_root_weights resolves the block hash
+    once before the gather and passes it to both children instead of forwarding `block`
+    so each child re-resolves it."""
+    # Prep
+    metagraph = AsyncMetagraph(1, sync=False)
+    subtensor = mocker.AsyncMock()
+    block = 123
+
+    # Call (empty data keeps the post-gather tensor processing trivial)
+    await metagraph._process_root_weights([], "weights", subtensor, block=block)
+
+    # Asserts: one resolution, both children consume the resolved hash, none get `block=`.
+    subtensor.determine_block_hash.assert_awaited_once_with(block)
+    subtensor.get_total_subnets.assert_awaited_once_with(
+        block_hash=subtensor.determine_block_hash.return_value
+    )
+    subtensor.get_all_subnets_netuid.assert_awaited_once_with(
+        block_hash=subtensor.determine_block_hash.return_value
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_apply_extra_info_resolves_block_hash_once(mocker):
+    """Regression for #3129: AsyncMetagraph._apply_extra_info resolves the block hash once
+    and passes it to both mechanism queries instead of forwarding `block` to each."""
+    # Prep
+    metagraph = AsyncMetagraph(1, sync=False)
+    subtensor = mocker.AsyncMock()
+    subtensor.get_metagraph_info = mocker.AsyncMock(return_value=None)
+    metagraph.subtensor = subtensor
+    block = 123
+
+    # Call
+    await metagraph._apply_extra_info(block=block)
+
+    # Asserts
+    subtensor.determine_block_hash.assert_awaited_once_with(block)
+    subtensor.get_mechanism_count.assert_awaited_once_with(
+        netuid=metagraph.netuid,
+        block_hash=subtensor.determine_block_hash.return_value,
+    )
+    subtensor.get_mechanism_emission_split.assert_awaited_once_with(
+        netuid=metagraph.netuid,
+        block_hash=subtensor.determine_block_hash.return_value,
+    )

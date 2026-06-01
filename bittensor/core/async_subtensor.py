@@ -1356,18 +1356,15 @@ class AsyncSubtensor(SubtensorMixin):
             A list of SubnetInfo objects, each containing detailed information about a subnet.
 
         """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         result, prices = await asyncio.gather(
             self.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnets_info_v2",
                 params=[],
-                block=block,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             ),
-            self.get_subnet_prices(
-                block=block, block_hash=block_hash, reuse_block=reuse_block
-            ),
+            self.get_subnet_prices(block_hash=block_hash),
             return_exceptions=True,
         )
         if not result:
