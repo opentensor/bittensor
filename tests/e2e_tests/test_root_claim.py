@@ -673,7 +673,9 @@ def test_root_claim_keep_with_random_auto_claims(
         next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
             root_sn.netuid
         )
-        subtensor.wait_for_block(next_epoch_start_block)
+        # +4 blocks: root dividend emission and the auto-claim land a few blocks
+        # into the new epoch, not at the exact boundary (see test_root_claim_swap_async).
+        subtensor.wait_for_block(next_epoch_start_block + 4)
 
         # Check Charlie stake and claimed
         claimed_stake_charlie = subtensor.staking.get_stake(
@@ -806,7 +808,9 @@ async def test_root_claim_keep_with_random_auto_claims_async(
         next_epoch_start_block = (
             await async_subtensor.subnets.get_next_epoch_start_block(root_sn.netuid)
         )
-        await async_subtensor.wait_for_block(next_epoch_start_block)
+        # +4 blocks: root dividend emission and the auto-claim land a few blocks
+        # into the new epoch, not at the exact boundary (see test_root_claim_swap_async).
+        await async_subtensor.wait_for_block(next_epoch_start_block + 4)
 
         # Check Charlie stake and claimed
         claimed_stake_charlie = await async_subtensor.staking.get_stake(
