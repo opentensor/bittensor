@@ -111,16 +111,25 @@ def test_root_claim_swap(subtensor, alice_wallet, bob_wallet, charlie_wallet):
 
     # Proof that ROOT stake is changing each last epoch block
     while proof_counter > 0:
-        next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
-            netuid=root_sn.netuid
+        # Poll across up to MAX_EPOCHS_FOR_INCREASE epochs for the stake to grow.
+        charlie_root_stake = prev_root_stake
+        epochs_left = MAX_EPOCHS_FOR_INCREASE
+        while charlie_root_stake <= prev_root_stake and epochs_left > 0:
+            next_epoch_start_block = subtensor.subnets.get_next_epoch_start_block(
+                netuid=root_sn.netuid
+            )
+            subtensor.wait_for_block(block=next_epoch_start_block + 4)
+            charlie_root_stake = subtensor.staking.get_stake(
+                coldkey_ss58=charlie_wallet.coldkey.ss58_address,
+                hotkey_ss58=alice_wallet.hotkey.ss58_address,
+                netuid=root_sn.netuid,
+            )
+            epochs_left -= 1
+
+        assert charlie_root_stake > prev_root_stake, (
+            f"Stake did not increase over {MAX_EPOCHS_FOR_INCREASE} epochs: "
+            f"{charlie_root_stake} <= {prev_root_stake}"
         )
-        subtensor.wait_for_block(block=next_epoch_start_block)
-        charlie_root_stake = subtensor.staking.get_stake(
-            coldkey_ss58=charlie_wallet.coldkey.ss58_address,
-            hotkey_ss58=alice_wallet.hotkey.ss58_address,
-            netuid=root_sn.netuid,
-        )
-        assert charlie_root_stake > prev_root_stake
         prev_root_stake = charlie_root_stake
         proof_counter -= 1
 
