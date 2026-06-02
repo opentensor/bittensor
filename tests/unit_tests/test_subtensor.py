@@ -1711,6 +1711,99 @@ def test_reveal_weights(subtensor, fake_wallet, mocker):
     )
 
 
+def test_commit_weights_forwards_version_key(subtensor, fake_wallet, mocker):
+    """Regression: commit_weights must forward the caller's version_key to the
+    extrinsic. If dropped, the commit hash is built with the default version_key
+    and a reveal made with the intended version_key mismatches on-chain."""
+    # Preps
+    netuid = 1
+    uids = [1, 2, 3, 4]
+    weights = [10, 20, 30, 40]
+    salt = [4, 2, 2, 1]
+    custom_version_key = version_as_int + 1
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module,
+        "commit_weights_extrinsic",
+        return_value=ExtrinsicResponse(True, None),
+    )
+
+    # Call
+    subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=netuid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=custom_version_key,
+    )
+
+    # Assertions
+    assert mocked_extrinsic.call_count == 1
+    assert mocked_extrinsic.call_args.kwargs["version_key"] == custom_version_key
+
+
+@pytest.mark.parametrize(
+    "version_key",
+    [version_as_int, version_as_int + 7],
+    ids=["default_version_key", "custom_version_key"],
+)
+def test_commit_weights_hash_matches_reveal(
+    subtensor, fake_wallet, mocker, version_key
+):
+    """Symptom-level: the commit hash built by commit_weights(version_key=X) must equal
+    the hash the chain recomputes at reveal for the same inputs and X (reveal_weights
+    forwards version_key). Pre-fix, commit dropped X and hashed with the default, so a
+    custom X produced a mismatching commit hash that a reveal would be rejected against."""
+    from bittensor.utils.weight_utils import generate_weight_hash as real_ghash
+
+    fake_wallet.hotkey.ss58_address = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    uids = [1, 2, 3]
+    weights = [10, 20, 30]
+    salt = [4, 2, 2, 1]
+
+    captured = {}
+
+    def spy(**kwargs):
+        result = real_ghash(**kwargs)
+        captured.update(kwargs)
+        captured["result"] = result
+        return result
+
+    mocker.patch(
+        "bittensor.core.extrinsics.weights.generate_weight_hash", side_effect=spy
+    )
+    # Neutralize wallet unlock + chain submission so the extrinsic runs through hashing.
+    mocker.patch.object(
+        ExtrinsicResponse, "unlock_wallet", return_value=mocker.Mock(success=True)
+    )
+    mocker.patch("bittensor.core.extrinsics.weights.SubtensorModule")
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, None)
+    )
+
+    # Call (force the non-MEV path).
+    subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=1,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=version_key,
+        mev_protection=False,
+    )
+
+    # Hash actually committed by commit_weights ...
+    commit_hash = captured["result"]
+    # ... vs the hash the chain recomputes at reveal for the same inputs + intended
+    # version_key (reusing the exact non-version_key args the commit path passed).
+    reveal_args = {
+        k: v for k, v in captured.items() if k not in ("version_key", "result")
+    }
+    reveal_hash = real_ghash(**reveal_args, version_key=version_key)
+
+    assert commit_hash == reveal_hash
+
+
 def test_reveal_weights_false(subtensor, fake_wallet, mocker):
     """Failed test_reveal_weights call."""
     # Preps
