@@ -642,9 +642,7 @@ class AsyncSubtensor(SubtensorMixin):
             - <https://docs.learnbittensor.org/subnets/subnet-hyperparameters>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        if not await self.subnet_exists(
-            netuid, block_hash=block_hash, reuse_block=reuse_block
-        ):
+        if not await self.subnet_exists(netuid, block_hash=block_hash):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
@@ -1101,9 +1099,7 @@ class AsyncSubtensor(SubtensorMixin):
         call: list[int] = await self.get_hyperparameter(
             param_name="LastUpdate",
             netuid=netuid,
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if len(call) == 0 else (block - int(call[uid]))
 
@@ -1224,7 +1220,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="CommitRevealWeightsEnabled",
             block_hash=block_hash,
             netuid=netuid,
-            reuse_block=reuse_block,
         )
         assert call is not None
         return call
@@ -1264,7 +1259,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="Difficulty",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         assert call is not None
         return int(call)
@@ -2245,9 +2239,7 @@ class AsyncSubtensor(SubtensorMixin):
             query = await self.query_constant(
                 module_name="SubtensorModule",
                 constant_name=const_name,
-                block=block,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             )
             if query is not None:
                 result[const_name] = query.value
@@ -2387,9 +2379,7 @@ class AsyncSubtensor(SubtensorMixin):
             query = await self.query_constant(
                 module_name="Crowdloan",
                 constant_name=const_name,
-                block=block,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             )
 
             if query is not None:
@@ -2662,7 +2652,6 @@ class AsyncSubtensor(SubtensorMixin):
         result: ScaleType[int] = await self.query_subtensor(
             name="Delegates",
             block_hash=block_hash,
-            reuse_block=reuse_block,
             params=[hotkey_ss58],
         )
 
@@ -3538,7 +3527,6 @@ class AsyncSubtensor(SubtensorMixin):
             module="SubtensorModule",
             name="NeuronCertificates",
             block_hash=block_hash,
-            reuse_block=reuse_block,
             params=[netuid, hotkey_ss58],
         )
         certificate: Optional[NeuronCertificateResponse] = certificate_query.value
@@ -3586,7 +3574,6 @@ class AsyncSubtensor(SubtensorMixin):
                 uid=uid,
                 netuid=netuid,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             )
 
     async def get_next_epoch_start_block(
@@ -3897,9 +3884,7 @@ class AsyncSubtensor(SubtensorMixin):
             query = await self.query_constant(
                 module_name="Proxy",
                 constant_name=const_name,
-                block=block,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             )
 
             if query is not None:
@@ -4172,16 +4157,12 @@ class AsyncSubtensor(SubtensorMixin):
             coldkey_ss58=coldkey_ss58,
             hotkey_ss58=hotkey_ss58,
             netuid=0,  # root netuid
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         root_claimable_rate = await self.get_root_claimable_rate(
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         root_claimable_stake = (root_claimable_rate * root_stake).set_unit(
             netuid=netuid
@@ -4190,9 +4171,7 @@ class AsyncSubtensor(SubtensorMixin):
             coldkey_ss58=coldkey_ss58,
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return max(
             root_claimable_stake - root_claimed, Balance(0).set_unit(netuid=netuid)
@@ -5223,7 +5202,6 @@ class AsyncSubtensor(SubtensorMixin):
                 *[
                     self.get_netuids_for_hotkey(
                         wallet.hotkey.ss58_address,
-                        reuse_block=reuse_block,
                         block_hash=block_hash,
                     )
                     for wallet in all_hotkeys
@@ -5280,7 +5258,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="ImmunityPeriod",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
@@ -5367,9 +5344,7 @@ class AsyncSubtensor(SubtensorMixin):
         consensus and governance processes.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        delegates = await self.get_delegates(
-            block_hash=block_hash, reuse_block=reuse_block
-        )
+        delegates = await self.get_delegates(block_hash=block_hash)
         return hotkey_ss58 in [info.hotkey_ss58 for info in delegates]
 
     async def is_hotkey_registered(
@@ -5592,7 +5567,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="MaxWeightsLimit",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else u16_normalized_float(int(call))
 
@@ -5663,7 +5637,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="MinAllowedWeights",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
@@ -5857,7 +5830,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="Burn",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else Balance.from_rao(int(call))
 
@@ -5898,9 +5870,7 @@ class AsyncSubtensor(SubtensorMixin):
             ),
             self.get_subnet_price(
                 netuid=netuid,
-                block=block,
                 block_hash=block_hash,
-                reuse_block=reuse_block,
             ),
             return_exceptions=True,
         )
@@ -5966,7 +5936,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="SubnetworkN",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
@@ -6001,7 +5970,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="Tempo",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
@@ -6028,9 +5996,7 @@ class AsyncSubtensor(SubtensorMixin):
         transaction processing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        result = await self.query_subtensor(
-            "TxRateLimit", block_hash=block_hash, reuse_block=reuse_block
-        )
+        result = await self.query_subtensor("TxRateLimit", block_hash=block_hash)
         return getattr(result, "value", None)
 
     async def wait_for_block(self, block: Optional[int] = None) -> bool:
@@ -6140,7 +6106,6 @@ class AsyncSubtensor(SubtensorMixin):
             param_name="WeightsSetRateLimit",
             netuid=netuid,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
@@ -6248,9 +6213,7 @@ class AsyncSubtensor(SubtensorMixin):
             call_module=call_module,
             call_function=call_function,
             call_params=call_params,
-            block=block,
             block_hash=block_hash,
-            reuse_block=reuse_block,
         )
 
         logging.debug(

@@ -367,7 +367,7 @@ async def test_is_hotkey_delegate(subtensor, mocker, hotkey_ss58_in_result):
     # Asserts
     assert result == hotkey_ss58_in_result
     mocked_get_delegates.assert_called_once_with(
-        block_hash=subtensor.substrate.last_block_hash, reuse_block=True
+        block_hash=subtensor.substrate.last_block_hash
     )
 
 
@@ -848,7 +848,6 @@ async def test_filter_netuids_by_registered_hotkeys(
         mocker.call(
             w.hotkey.ss58_address,
             block_hash=fake_block_hash,
-            reuse_block=fake_reuse_block,
         )
         for w in fake_all_hotkeys
     ]
@@ -2319,7 +2318,6 @@ async def test_weights_rate_limit_success(subtensor, mocker):
         param_name="WeightsSetRateLimit",
         netuid=fake_netuid,
         block_hash=None,
-        reuse_block=False,
     )
     assert result == fake_rate_limit
 
@@ -2345,7 +2343,6 @@ async def test_weights_rate_limit_none(subtensor, mocker):
         param_name="WeightsSetRateLimit",
         netuid=fake_netuid,
         block_hash=None,
-        reuse_block=False,
     )
     assert result is None
 
@@ -2378,9 +2375,7 @@ async def test_blocks_since_last_update_success(subtensor, mocker):
     mocked_get_hyperparameter.assert_called_once_with(
         param_name="LastUpdate",
         netuid=fake_netuid,
-        block=subtensor.substrate.get_block_number.return_value,
         block_hash=None,
-        reuse_block=False,
     )
     assert result == fake_blocks_since_update
 
@@ -2409,9 +2404,7 @@ async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
     mocked_get_hyperparameter.assert_called_once_with(
         param_name="LastUpdate",
         netuid=fake_netuid,
-        block=subtensor.substrate.get_block_number.return_value,
         block_hash=None,
-        reuse_block=False,
     )
     assert result is None
 
@@ -2436,7 +2429,6 @@ async def test_commit_reveal_enabled(subtensor, mocker):
         param_name="CommitRevealWeightsEnabled",
         block_hash=block_hash,
         netuid=netuid,
-        reuse_block=False,
     )
     assert result is False
 
@@ -3820,9 +3812,7 @@ async def test_subnet(subtensor, mocker):
     )
     mocked_get_subnet_price.assert_awaited_once_with(
         netuid=netuid,
-        block=None,
         block_hash=mocked_determine_block_hash.return_value,
-        reuse_block=False,
     )
     mocked_di_from_dict.assert_called_once_with(
         {"netuid": netuid, "price": Balance.from_tao(100.0)}
@@ -4742,9 +4732,7 @@ async def test_get_crowdloan_constants(mocker, subtensor):
     mocked_query_constant.assert_awaited_once_with(
         module_name="Crowdloan",
         constant_name=fake_constant_name,
-        block=None,
         block_hash=None,
-        reuse_block=False,
     )
     mocked_from_dict.assert_called_once_with(
         {fake_constant_name: mocked_query_constant.return_value.value}
@@ -5171,24 +5159,18 @@ async def test_get_root_claimable_stake(mocker, subtensor):
         coldkey_ss58=coldkey_ss58,
         hotkey_ss58=hotkey_ss58,
         netuid=0,
-        block=None,
         block_hash=None,
-        reuse_block=False,
     )
     mocked_get_root_claimable_rate.assert_awaited_once_with(
         hotkey_ss58=hotkey_ss58,
         netuid=netuid,
-        block=None,
         block_hash=None,
-        reuse_block=False,
     )
     mocked_get_root_claimed.assert_awaited_once_with(
         coldkey_ss58=coldkey_ss58,
         hotkey_ss58=hotkey_ss58,
         netuid=netuid,
-        block=None,
         block_hash=None,
-        reuse_block=False,
     )
     assert result == Balance.from_rao(1).set_unit(netuid)
 
@@ -6513,9 +6495,7 @@ async def test_get_coldkey_swap_constants(subtensor, mocker):
     mocked_query_constant.assert_awaited_once_with(
         module_name="SubtensorModule",
         constant_name=fake_name,
-        block=None,
         block_hash=None,
-        reuse_block=False,
     )
     mocked_from_dict.assert_called_once_with({fake_name: fake_value.value})
     assert result == mocked_from_dict.return_value
@@ -6665,3 +6645,202 @@ async def test_dispute_coldkey_swap(mocker, subtensor):
         wait_for_revealed_execution=True,
     )
     assert response == mocked_dispute_coldkey_swap_extrinsic.return_value
+
+
+# ---------------------------------------------------------------------------
+# Regression: reuse_block=True double block-hash resolution
+#
+# Methods that resolved block_hash and then forwarded both the resolved
+# block_hash AND reuse_block into a re-resolving child tripped
+# determine_block_hash's mutual-exclusion guard -> ValueError. The fix forwards
+# only the resolved block_hash. These tests drive the real determine_block_hash
+# path (the resolving child is NOT mocked) across every affected method.
+# ---------------------------------------------------------------------------
+
+REUSE_BLOCK_LAST_HASH = "0x" + "ab" * 32
+
+_reuse_block_wallet = mock.Mock()
+_reuse_block_wallet.hotkey.ss58_address = "5FHotkey"
+
+
+class _AsyncQueryMapResult:
+    def __init__(self, items):
+        self.records = items
+        self._items = items
+
+    def __aiter__(self):
+        async def _gen():
+            for item in self._items:
+                yield item
+
+        return _gen()
+
+
+@pytest.fixture
+def reuse_block_substrate(mocker):
+    sub = mocker.patch(
+        "bittensor.core.async_subtensor.AsyncSubstrateInterface", autospec=True
+    ).return_value
+    # reuse_block=True resolves to last_block_hash; non-None after a prior query.
+    sub.last_block_hash = REUSE_BLOCK_LAST_HASH
+    sub.get_block_hash = mocker.AsyncMock(return_value=REUSE_BLOCK_LAST_HASH)
+    sub.get_block_number = mocker.AsyncMock(return_value=1000)
+    _values = {
+        "NetworksAdded": True,
+        "LastUpdate": [10, 20, 30],
+        "Uids": 5,
+        "NeuronCertificates": None,
+        "RootClaimable": [],
+        "RootClaimed": 100,
+    }
+    sub.query = mocker.AsyncMock(
+        side_effect=lambda *a, **kw: mock.Mock(
+            value=_values.get(kw.get("storage_function"), 100)
+        )
+    )
+    sub.query_map = mocker.AsyncMock(
+        return_value=_AsyncQueryMapResult([(1, True), (2, False)])
+    )
+    sub.get_constant = mocker.AsyncMock(return_value=mock.Mock(value=1))
+
+    def _runtime_call(*a, **kw):
+        method = a[1] if len(a) > 1 else kw.get("method")
+        return {
+            "get_dynamic_info": {"netuid": 1},
+            "current_alpha_price": 100,
+            "get_delegates": [],
+        }.get(method, {"x": 1})
+
+    sub.runtime_call = mocker.AsyncMock(side_effect=_runtime_call)
+    sub.get_metadata_call_function = mocker.AsyncMock(
+        return_value=mock.Mock(get_param_info=mock.Mock(return_value={}))
+    )
+    sub.compose_call = mocker.AsyncMock(return_value=mock.Mock())
+    return sub
+
+
+@pytest.fixture
+def reuse_block_subtensor(reuse_block_substrate, mocker):
+    # Neutralize SCALE decoders that run on mocked leaf data (they are not the
+    # block-hash-resolving children, so the real resolution path still runs).
+    for cls in (
+        async_subtensor.NeuronInfo,
+        async_subtensor.DynamicInfo,
+        async_subtensor.ColdkeySwapConstants,
+        async_subtensor.CrowdloanConstants,
+        async_subtensor.ProxyConstants,
+    ):
+        mocker.patch.object(cls, "from_dict", return_value=mock.Mock())
+    mocker.patch.object(
+        async_subtensor.StakeInfo,
+        "from_dict",
+        return_value=mock.Mock(stake=Balance.from_tao(1)),
+    )
+    return async_subtensor.AsyncSubtensor()
+
+
+# Every affected method (23 functions / 25 fixed call sites) — keep all for
+# mutation coverage; kwargs are the minimum to reach the fixed forwarding site.
+REUSE_BLOCK_METHODS = [
+    ("get_hyperparameter", {"param_name": "Tempo", "netuid": 1}),
+    ("blocks_since_last_update", {"netuid": 1, "uid": 0}),
+    ("commit_reveal_enabled", {"netuid": 1}),
+    ("difficulty", {"netuid": 1}),
+    ("get_coldkey_swap_constants", {}),
+    ("get_crowdloan_constants", {}),
+    ("get_delegate_take", {"hotkey_ss58": "5FHotkey"}),
+    ("get_neuron_certificate", {"hotkey_ss58": "5FHotkey", "netuid": 1}),
+    ("get_neuron_for_pubkey_and_subnet", {"hotkey_ss58": "5FHotkey", "netuid": 1}),
+    ("get_proxy_constants", {}),
+    (
+        "get_root_claimable_stake",
+        {"coldkey_ss58": "5FColdkey", "hotkey_ss58": "5FHotkey", "netuid": 1},
+    ),
+    (
+        "filter_netuids_by_registered_hotkeys",
+        {
+            "all_netuids": [1, 2],
+            "filter_for_netuids": [1],
+            "all_hotkeys": [_reuse_block_wallet],
+        },
+    ),
+    ("immunity_period", {"netuid": 1}),
+    ("is_hotkey_delegate", {"hotkey_ss58": "5FHotkey"}),
+    ("max_weight_limit", {"netuid": 1}),
+    ("min_allowed_weights", {"netuid": 1}),
+    ("recycle", {"netuid": 1}),
+    ("subnet", {"netuid": 1}),
+    ("subnetwork_n", {"netuid": 1}),
+    ("tempo", {"netuid": 1}),
+    ("tx_rate_limit", {}),
+    ("weights_rate_limit", {"netuid": 1}),
+    (
+        "compose_call",
+        {
+            "call_module": "SubtensorModule",
+            "call_function": "set_weights",
+            "call_params": {},
+        },
+    ),
+]
+
+
+def _reuse_block_leaf_hashes(substrate):
+    """block_hash passed to every leaf substrate call (incl. compose_call)."""
+    leaves = (
+        substrate.query,
+        substrate.query_map,
+        substrate.get_constant,
+        substrate.runtime_call,
+        substrate.get_metadata_call_function,
+        substrate.compose_call,
+    )
+    seen = []
+    for leaf in leaves:
+        for call in leaf.await_args_list:
+            if "block_hash" in call.kwargs:
+                seen.append(call.kwargs["block_hash"])
+            elif len(call.args) >= 4:  # runtime_call(api, method, params, block_hash)
+                seen.append(call.args[3])
+    return seen
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method_name, kwargs",
+    REUSE_BLOCK_METHODS,
+    ids=[m[0] for m in REUSE_BLOCK_METHODS],
+)
+async def test_reuse_block_true_threads_resolved_hash(
+    reuse_block_subtensor, reuse_block_substrate, method_name, kwargs
+):
+    """reuse_block=True must not raise the guard ValueError, and the reused
+    last_block_hash must reach every leaf substrate call (no chain-tip redirect)."""
+    await getattr(reuse_block_subtensor, method_name)(reuse_block=True, **kwargs)
+
+    leaf_hashes = _reuse_block_leaf_hashes(reuse_block_substrate)
+    assert leaf_hashes, f"{method_name}: no leaf substrate call observed"
+    assert all(h == REUSE_BLOCK_LAST_HASH for h in leaf_hashes), (
+        f"{method_name}: a leaf got {set(leaf_hashes)} instead of the reused hash"
+    )
+
+
+@pytest.mark.asyncio
+async def test_reuse_block_true_no_cached_block(
+    reuse_block_subtensor, reuse_block_substrate
+):
+    """reuse_block=True with nothing cached resolves to None (chain tip), exactly
+    like the no-arg call -- the defined behavior, not a fix-introduced redirect."""
+    reuse_block_substrate.last_block_hash = None
+    assert await reuse_block_subtensor.tempo(netuid=1, reuse_block=True) == 100
+    assert all(h is None for h in _reuse_block_leaf_hashes(reuse_block_substrate))
+
+
+@pytest.mark.asyncio
+async def test_reuse_block_true_matches_block_hash(reuse_block_subtensor):
+    """reuse_block=True yields the same value as the equivalent block_hash."""
+    via_reuse = await reuse_block_subtensor.tempo(netuid=1, reuse_block=True)
+    via_hash = await reuse_block_subtensor.tempo(
+        netuid=1, block_hash=REUSE_BLOCK_LAST_HASH
+    )
+    assert via_reuse == via_hash == 100
