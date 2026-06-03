@@ -6894,6 +6894,7 @@ class AsyncSubtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
+                    version_key=version_key,
                     mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
