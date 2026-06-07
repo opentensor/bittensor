@@ -547,6 +547,12 @@ def kill_pure_proxy_extrinsic(
         ).success:
             return unlocked
 
+        if wallet.coldkey.ss58_address != spawner:
+            raise ValueError(
+                f"Only the spawner ({spawner}) can kill this pure proxy. "
+                f"Provided wallet belongs to {wallet.coldkey.ss58_address}."
+            )
+
         proxy_type_str = ProxyType.normalize(proxy_type)
 
         logging.debug(
