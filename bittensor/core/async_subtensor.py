@@ -462,11 +462,12 @@ class AsyncSubtensor(SubtensorMixin):
         for blockchain queries.
 
         Parameter precedence (in order):
-            1. If `reuse_block=True` and `block` or `block_hash` is set → raises ValueError
-            2. If both `block` and `block_hash` are set → validates they match, raises ValueError if not
-            3. If only `block_hash` is set → returns it directly
-            4. If only `block` is set → fetches and returns its hash
-            5. If none are set → returns `None`
+            1. ``block`` + ``block_hash`` → validate they agree, return hash
+            2. ``block_hash`` only → return it (``reuse_block`` is ignored if also set)
+            3. ``block`` + ``reuse_block`` → raises ValueError
+            4. ``block`` only → fetch hash for the block number
+            5. ``reuse_block`` only → return ``substrate.last_block_hash`` (may be None)
+            6. none set → return None (chain tip)
 
         Parameters:
             block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block`
@@ -482,9 +483,8 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#block>
         """
-        if reuse_block and any([block, block_hash]):
-            raise ValueError("Cannot specify both reuse_block and block_hash/block")
-        if block and block_hash:
+        # 1. Explicit pair: strongest signal, validate consistency
+        if block is not None and block_hash is not None:
             retrieved_block_hash = await self.get_block_hash(block)
             if retrieved_block_hash != block_hash:
                 raise ValueError(
@@ -492,16 +492,20 @@ class AsyncSubtensor(SubtensorMixin):
                     f"the one you supplied. You supplied `block_hash={block_hash}` for `block={block}`, but this block"
                     f"maps to the block hash {retrieved_block_hash}."
                 )
-            else:
-                return retrieved_block_hash
-
-        # Return the appropriate value.
-        if block_hash:
+            return retrieved_block_hash
+        # 2. Explicit hash wins; reuse_block is redundant after parent resolution
+        if block_hash is not None:
             return block_hash
+        # 3. Real ambiguity: block number vs reuse flag, no hash to disambiguate
+        if block is not None and reuse_block:
+            raise ValueError("Cannot specify both reuse_block and block")
+        # 4. Explicit block number
         if block is not None:
             return await self.get_block_hash(block)
+        # 5. Reuse last queried block
         if reuse_block:
             return self.substrate.last_block_hash
+        # 6. Chain tip
         return None
 
     async def _runtime_method_exists(
