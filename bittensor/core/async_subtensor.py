@@ -4699,9 +4699,7 @@ class AsyncSubtensor(SubtensorMixin):
                     block_hash=block_hash,
                 ),
             )
-            return {
-                int(p["netuid"]): Balance.from_rao(int(p["price"])) for p in prices_rao
-            }
+            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
 
         netuids = await self.get_all_subnets_netuid(
             block=block, block_hash=block_hash, reuse_block=reuse_block
