@@ -6139,9 +6139,8 @@ class Subtensor(SubtensorMixin):
         method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
-            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
-                with the pure proxy.
+            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address can either be the spawner or an account
+                with an "Any" proxy relationship to the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
                 returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
