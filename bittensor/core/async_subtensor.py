@@ -483,7 +483,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#block>
         """
-        # 1. Explicit pair: strongest signal, validate consistency
+        # 1. explicit pair: strongest signal, validate consistency
         if block is not None and block_hash is not None:
             retrieved_block_hash = await self.get_block_hash(block)
             if retrieved_block_hash != block_hash:
@@ -493,19 +493,24 @@ class AsyncSubtensor(SubtensorMixin):
                     f"maps to the block hash {retrieved_block_hash}."
                 )
             return retrieved_block_hash
-        # 2. Explicit hash wins; reuse_block is redundant after parent resolution
+
+        # 2. explicit hash wins; reuse_block is redundant after parent resolution
         if block_hash is not None:
             return block_hash
-        # 3. Real ambiguity: block number vs reuse flag, no hash to disambiguate
+
+        # 3. real ambiguity: block number vs reuse flag, no hash to disambiguate
         if block is not None and reuse_block:
             raise ValueError("Cannot specify both reuse_block and block")
-        # 4. Explicit block number
+
+        # 4. explicit block number
         if block is not None:
             return await self.get_block_hash(block)
-        # 5. Reuse last queried block
+
+        # 5. reuse last queried block
         if reuse_block:
             return self.substrate.last_block_hash
-        # 6. Chain tip
+
+        # 6. chain tip
         return None
 
     async def _runtime_method_exists(
