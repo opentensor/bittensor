@@ -1,3 +1,4 @@
+# TODO: remove this module in the next major release (include all references)
 from dataclasses import dataclass
 from typing import Optional
 
