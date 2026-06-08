@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 397
+    Subtensor spec version: 408
 """
 
 from collections import namedtuple
@@ -157,6 +157,10 @@ SUDO_SET_MIN_BURN = namedtuple(
 SUDO_SET_MIN_CHILDKEY_TAKE = namedtuple(
     "SUDO_SET_MIN_CHILDKEY_TAKE", ["wallet", "pallet", "sudo", "take"]
 )  # args: [take: u16]  | Pallet: SubtensorModule
+SUDO_SET_MIN_CHILDKEY_TAKE_PER_SUBNET = namedtuple(
+    "SUDO_SET_MIN_CHILDKEY_TAKE_PER_SUBNET",
+    ["wallet", "pallet", "sudo", "netuid", "take"],
+)  # args: [netuid: NetUid, take: u16]  | Pallet: AdminUtils
 SUDO_SET_MIN_DELEGATE_TAKE = namedtuple(
     "SUDO_SET_MIN_DELEGATE_TAKE", ["wallet", "pallet", "sudo", "take"]
 )  # args: [take: u16]  | Pallet: AdminUtils
@@ -183,12 +187,18 @@ SUDO_SET_NETWORK_REGISTRATION_ALLOWED = namedtuple(
     "SUDO_SET_NETWORK_REGISTRATION_ALLOWED",
     ["wallet", "pallet", "sudo", "netuid", "registration_allowed"],
 )  # args: [netuid: NetUid, registration_allowed: bool]  | Pallet: AdminUtils
+SUDO_SET_NET_TAO_FLOW_ENABLED = namedtuple(
+    "SUDO_SET_NET_TAO_FLOW_ENABLED", ["wallet", "pallet", "sudo", "enabled"]
+)  # args: [enabled: bool]  | Pallet: AdminUtils
 SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE = namedtuple(
     "SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE", ["wallet", "pallet", "sudo", "min_stake"]
 )  # args: [min_stake: u64]  | Pallet: AdminUtils
 SUDO_SET_NUM_ROOT_CLAIMS = namedtuple(
     "SUDO_SET_NUM_ROOT_CLAIMS", ["wallet", "pallet", "sudo", "new_value"]
 )  # args: [new_value: u64]  | Pallet: SubtensorModule
+SUDO_SET_OWNER_CUT_ENABLED = namedtuple(
+    "SUDO_SET_OWNER_CUT_ENABLED", ["wallet", "pallet", "sudo", "netuid", "enabled"]
+)  # args: [netuid: NetUid, enabled: bool]  | Pallet: AdminUtils
 SUDO_SET_OWNER_HPARAM_RATE_LIMIT = namedtuple(
     "SUDO_SET_OWNER_HPARAM_RATE_LIMIT", ["wallet", "pallet", "sudo", "epochs"]
 )  # args: [epochs: u16]  | Pallet: AdminUtils
@@ -222,6 +232,10 @@ SUDO_SET_STAKE_THRESHOLD = namedtuple(
 SUDO_SET_START_CALL_DELAY = namedtuple(
     "SUDO_SET_START_CALL_DELAY", ["wallet", "pallet", "sudo", "delay"]
 )  # args: [delay: u64]  | Pallet: AdminUtils
+SUDO_SET_SUBNET_EMISSION_ENABLED = namedtuple(
+    "SUDO_SET_SUBNET_EMISSION_ENABLED",
+    ["wallet", "pallet", "sudo", "netuid", "enabled"],
+)  # args: [netuid: NetUid, enabled: bool]  | Pallet: AdminUtils
 SUDO_SET_SUBNET_LIMIT = namedtuple(
     "SUDO_SET_SUBNET_LIMIT", ["wallet", "pallet", "sudo", "max_subnets"]
 )  # args: [max_subnets: u16]  | Pallet: AdminUtils

@@ -113,6 +113,8 @@ class DynamicInfo(InfoBase):
                 price
                 if price is not None
                 else Balance.from_tao(tao_in.tao / alpha_in.tao).set_unit(netuid)
+                if alpha_in.tao
+                else Balance.from_tao(1 if netuid == 0 else 0).set_unit(netuid)
             ),
             alpha_out_emission=alpha_out_emission,
             alpha_in_emission=alpha_in_emission,
