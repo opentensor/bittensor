@@ -4410,34 +4410,58 @@ async def test_set_auto_stake(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_determine_block_hash(subtensor, mocker):
-    """Tests that `determine_block_hash` calls proper methods and returns the correct value."""
+async def test_determine_block_hash(subtensor):
+    """Tests determine_block_hash precedence and validation rules."""
 
     async def fake_get_block_hash(block: int) -> str:
-        d = {
-            1: "0xfake1",
-            2: "0xfake2",
-        }
-        return d[block]
+        return {1: "0xfake1", 2: "0xfake2"}[block]
 
     subtensor.get_block_hash = fake_get_block_hash
+    subtensor.substrate.last_block_hash = "0xOTHER"
 
-    # Call
     mocked_hash = await subtensor.get_block_hash(block=1)
 
-    expected_hash_1 = await subtensor.determine_block_hash(block_hash=mocked_hash)
-    assert mocked_hash == expected_hash_1
+    # block_hash only
+    assert await subtensor.determine_block_hash(block_hash=mocked_hash) == mocked_hash
 
-    expected_hash_2 = await subtensor.determine_block_hash(
-        block=1, block_hash=mocked_hash
+    # block only
+    assert await subtensor.determine_block_hash(block=1) == mocked_hash
+
+    # block + block_hash agree
+    assert (
+        await subtensor.determine_block_hash(block=1, block_hash=mocked_hash)
+        == mocked_hash
     )
-    assert expected_hash_1 == expected_hash_2
 
-    with pytest.raises(ValueError):
+    # block_hash wins over reuse_block and last_block_hash (internal composition path)
+    assert (
+        await subtensor.determine_block_hash(block_hash=mocked_hash, reuse_block=True)
+        == mocked_hash
+    )
+
+    # block + block_hash + reuse_block: validate pair, ignore reuse_block
+    assert (
         await subtensor.determine_block_hash(
-            block_hash=mocked_hash, block=1, reuse_block=True
+            block=1, block_hash=mocked_hash, reuse_block=True
         )
+        == mocked_hash
+    )
 
+    # reuse_block only
+    assert await subtensor.determine_block_hash(reuse_block=True) == "0xOTHER"
+
+    # reuse_block with no cached block
+    subtensor.substrate.last_block_hash = None
+    assert await subtensor.determine_block_hash(reuse_block=True) is None
+
+    # chain tip
+    assert await subtensor.determine_block_hash() is None
+
+    # reuse_block + block: real conflict, no block_hash to disambiguate
+    with pytest.raises(ValueError, match="reuse_block and block"):
+        await subtensor.determine_block_hash(block=1, reuse_block=True)
+
+    # block + block_hash mismatch
     with pytest.raises(ValueError):
         await subtensor.determine_block_hash(block=2, block_hash=mocked_hash)
 
