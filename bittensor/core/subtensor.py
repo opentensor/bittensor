@@ -3286,14 +3286,14 @@ class Subtensor(SubtensorMixin):
         Notes:
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
-        query: ScaleType[list[tuple[int, FixedPoint]]] = self.substrate.query(
+        query: ScaleType[dict[int, FixedPoint]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimable",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
         return {
-            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value
+            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value.items()
         }
 
     def get_root_claimable_stake(
