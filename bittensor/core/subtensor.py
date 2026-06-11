@@ -3293,7 +3293,8 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return {
-            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value.items()
+            netuid: fixed_to_float(bits, frac_bits=32)
+            for (netuid, bits) in query.value.items()
         }
 
     def get_root_claimable_stake(
