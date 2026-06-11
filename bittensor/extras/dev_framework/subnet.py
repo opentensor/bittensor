@@ -1,5 +1,4 @@
 from typing import Optional, Union
-from collections import namedtuple
 from bittensor_wallet import Wallet
 
 from bittensor.core.extrinsics.asyncex.utils import (

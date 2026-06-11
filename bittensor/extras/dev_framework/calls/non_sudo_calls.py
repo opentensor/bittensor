@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 408
+    Subtensor spec version: 417
 """
 
 from collections import namedtuple
@@ -162,6 +162,9 @@ CANCEL_AS_MULTI = namedtuple(
 CANCEL_NAMED = namedtuple(
     "CANCEL_NAMED", ["wallet", "pallet", "id"]
 )  # args: [id: TaskName]  | Pallet: Scheduler
+CANCEL_ORDER = namedtuple(
+    "CANCEL_ORDER", ["wallet", "pallet", "order"]
+)  # args: [order: VersionedOrder<T::AccountId>]  | Pallet: LimitOrders
 CANCEL_RETRY = namedtuple(
     "CANCEL_RETRY", ["wallet", "pallet", "task"]
 )  # args: [task: TaskAddress<BlockNumberFor<T>>]  | Pallet: Scheduler
@@ -307,6 +310,12 @@ ENTER = namedtuple(
         "pallet",
     ],
 )  # args: []  | Pallet: SafeMode
+EXECUTE_BATCHED_ORDERS = namedtuple(
+    "EXECUTE_BATCHED_ORDERS", ["wallet", "pallet", "netuid", "orders"]
+)  # args: [netuid: NetUid, orders: BoundedVec<SignedOrder<T::AccountId>, T::MaxOrdersPerBatch>]  | Pallet: LimitOrders
+EXECUTE_ORDERS = namedtuple(
+    "EXECUTE_ORDERS", ["wallet", "pallet", "orders", "should_fail"]
+)  # args: [orders: BoundedVec<SignedOrder<T::AccountId>, T::MaxOrdersPerBatch>, should_fail: bool]  | Pallet: LimitOrders
 EXTEND = namedtuple(
     "EXTEND",
     [
@@ -652,6 +661,9 @@ SERVE_PROMETHEUS = namedtuple(
 SET = namedtuple(
     "SET", ["wallet", "pallet", "now"]
 )  # args: [now: T::Moment]  | Pallet: Timestamp
+SET_ACTIVITY_CUTOFF_FACTOR = namedtuple(
+    "SET_ACTIVITY_CUTOFF_FACTOR", ["wallet", "pallet", "netuid", "factor_milli"]
+)  # args: [netuid: NetUid, factor_milli: u32]  | Pallet: SubtensorModule
 SET_AUTO_PARENT_DELEGATION_ENABLED = namedtuple(
     "SET_AUTO_PARENT_DELEGATION_ENABLED", ["wallet", "pallet", "hotkey", "enabled"]
 )  # args: [hotkey: T::AccountId, enabled: bool]  | Pallet: SubtensorModule
@@ -711,6 +723,9 @@ SET_IDENTITY = namedtuple(
 SET_KEY = namedtuple(
     "SET_KEY", ["wallet", "pallet", "new"]
 )  # args: [new: AccountIdLookupOf<T>]  | Pallet: Sudo
+SET_MAX_CONTRIBUTION = namedtuple(
+    "SET_MAX_CONTRIBUTION", ["wallet", "pallet", "crowdloan_id", "new_max_contribution"]
+)  # args: [crowdloan_id: CrowdloanId, new_max_contribution: Option<BalanceOf<T>>]  | Pallet: Crowdloan
 SET_MAX_EXTRINSIC_WEIGHT = namedtuple(
     "SET_MAX_EXTRINSIC_WEIGHT", ["wallet", "pallet", "value"]
 )  # args: [value: u64]  | Pallet: MevShield
@@ -730,6 +745,9 @@ SET_OLDEST_STORED_ROUND = namedtuple(
 SET_ON_INITIALIZE_WEIGHT = namedtuple(
     "SET_ON_INITIALIZE_WEIGHT", ["wallet", "pallet", "value"]
 )  # args: [value: u64]  | Pallet: MevShield
+SET_PALLET_STATUS = namedtuple(
+    "SET_PALLET_STATUS", ["wallet", "pallet", "enabled"]
+)  # args: [enabled: bool]  | Pallet: LimitOrders
 SET_PENDING_CHILDKEY_COOLDOWN = namedtuple(
     "SET_PENDING_CHILDKEY_COOLDOWN", ["wallet", "pallet", "cooldown"]
 )  # args: [cooldown: u64]  | Pallet: SubtensorModule
@@ -770,6 +788,9 @@ SET_SUBNET_IDENTITY = namedtuple(
         "additional",
     ],
 )  # args: [netuid: NetUid, subnet_name: Vec<u8>, github_repo: Vec<u8>, subnet_contact: Vec<u8>, subnet_url: Vec<u8>, discord: Vec<u8>, description: Vec<u8>, logo_url: Vec<u8>, additional: Vec<u8>]  | Pallet: SubtensorModule
+SET_TEMPO = namedtuple(
+    "SET_TEMPO", ["wallet", "pallet", "netuid", "tempo"]
+)  # args: [netuid: NetUid, tempo: u16]  | Pallet: SubtensorModule
 SET_WEIGHTS = namedtuple(
     "SET_WEIGHTS", ["wallet", "pallet", "netuid", "dests", "weights", "version_key"]
 )  # args: [netuid: NetUid, dests: Vec<u16>, weights: Vec<u16>, version_key: u64]  | Pallet: SubtensorModule
@@ -858,6 +879,9 @@ TRANSFER_STAKE = namedtuple(
         "alpha_amount",
     ],
 )  # args: [destination_coldkey: T::AccountId, hotkey: T::AccountId, origin_netuid: NetUid, destination_netuid: NetUid, alpha_amount: AlphaBalance]  | Pallet: SubtensorModule
+TRIGGER_EPOCH = namedtuple(
+    "TRIGGER_EPOCH", ["wallet", "pallet", "netuid"]
+)  # args: [netuid: NetUid]  | Pallet: SubtensorModule
 TRY_ASSOCIATE_HOTKEY = namedtuple(
     "TRY_ASSOCIATE_HOTKEY", ["wallet", "pallet", "hotkey"]
 )  # args: [hotkey: T::AccountId]  | Pallet: SubtensorModule
