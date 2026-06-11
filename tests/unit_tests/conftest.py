@@ -11,7 +11,19 @@ def force_legacy_torch_compatible_api(monkeypatch):
 
 
 @pytest.fixture
-def mock_aio_response():
+def mock_aio_response(monkeypatch):
+    import aiohttp
+    from unittest.mock import Mock
+    from aioresponses import aioresponses
+
+    original_init = aiohttp.ClientResponse.__init__
+
+    def patched_init(self, *args, **kwargs):
+        if "stream_writer" not in kwargs:
+            kwargs["stream_writer"] = Mock()
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(aiohttp.ClientResponse, "__init__", patched_init)
     with aioresponses() as m:
         yield m
 

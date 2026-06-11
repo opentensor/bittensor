@@ -1740,11 +1740,17 @@ def test_unstaking_with_limit(
         # time for chain update
         subtensor.wait_for_block(subtensor.block + 5)
 
-        # Make sure both unstake were successful.
+        # Make sure both unstakes were successful. unstake_all can leave a few rao
+        # of rounding dust because the removable alpha depends on dividend emission
+        # accrued up to that block, so assert each residual position is ~0 rather
+        # than requiring an empty list.
         bob_stakes = subtensor.staking.get_stake_info_for_coldkey(
             bob_wallet.coldkey.ss58_address
         )
-        assert len(bob_stakes) == 0
+        for si in bob_stakes:
+            assert si.stake.rao == CloseInValue(0, 1000), (
+                f"Residual stake too large after unstake_all: {si}"
+            )
 
 
 @pytest.mark.parametrize(
@@ -1841,11 +1847,17 @@ async def test_unstaking_with_limit_async(
         # time for chain update
         await async_subtensor.wait_for_block(await async_subtensor.block + 5)
 
-        # Make sure both unstake were successful.
+        # Make sure both unstakes were successful. unstake_all can leave a few rao
+        # of rounding dust because the removable alpha depends on dividend emission
+        # accrued up to that block, so assert each residual position is ~0 rather
+        # than requiring an empty list.
         bob_stakes = await async_subtensor.staking.get_stake_info_for_coldkey(
             bob_wallet.coldkey.ss58_address
         )
-        assert len(bob_stakes) == 0
+        for si in bob_stakes:
+            assert si.stake.rao == CloseInValue(0, 1000), (
+                f"Residual stake too large after unstake_all: {si}"
+            )
 
 
 def test_auto_staking(subtensor, alice_wallet, bob_wallet, eve_wallet):
