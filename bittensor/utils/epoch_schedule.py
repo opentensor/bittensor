@@ -7,8 +7,8 @@ def blocks_until_next_auto_epoch(
     """Returns the number of blocks remaining before the next automatic epoch.
 
     Port of ``run_coinbase.rs::blocks_until_next_auto_epoch``. Does not account for ``PendingEpochAt``, the
-    ``BlocksSinceLastStep > MAX_TEMPO`` safety-net, or per-block-cap deferral. Caller must guard against ``tempo == 0``
-    upstream.
+    ``BlocksSinceLastStep > MaxTempo`` safety-net, or the per-block-cap deferral. Caller must guard against
+    ``tempo == 0`` upstream.
 
     Parameters:
         last_epoch_block: The block at which the last epoch fired for this subnet.

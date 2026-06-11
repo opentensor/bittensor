@@ -916,6 +916,183 @@ async def test_get_existential_deposit_raise_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_max_activity_cutoff_factor_milli(subtensor, mocker):
+    """Tests get_max_activity_cutoff_factor_milli method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    mocked_substrate_get_constant = mocker.AsyncMock(
+        return_value=mocker.Mock(value=50_000)
+    )
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    result = await subtensor.get_max_activity_cutoff_factor_milli(
+        block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxActivityCutoffFactorMilli",
+        block_hash=fake_block_hash,
+    )
+    assert result == 50_000
+
+
+@pytest.mark.asyncio
+async def test_get_max_activity_cutoff_factor_milli_none(subtensor, mocker):
+    """Tests get_max_activity_cutoff_factor_milli raises when constant is missing."""
+    # Preps
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_max_activity_cutoff_factor_milli(block_hash="block_hash")
+
+
+@pytest.mark.asyncio
+async def test_get_max_epochs_per_block(subtensor, mocker):
+    """Tests get_max_epochs_per_block method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=mocker.Mock(value=32))
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    result = await subtensor.get_max_epochs_per_block(block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxEpochsPerBlock",
+        block_hash=fake_block_hash,
+    )
+    assert result == 32
+
+
+@pytest.mark.asyncio
+async def test_get_max_epochs_per_block_none(subtensor, mocker):
+    """Tests get_max_epochs_per_block raises when constant is missing."""
+    # Preps
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_max_epochs_per_block(block_hash="block_hash")
+
+
+@pytest.mark.asyncio
+async def test_get_max_tempo(subtensor, mocker):
+    """Tests get_max_tempo method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    mocked_substrate_get_constant = mocker.AsyncMock(
+        return_value=mocker.Mock(value=50_400)
+    )
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    result = await subtensor.get_max_tempo(block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxTempo",
+        block_hash=fake_block_hash,
+    )
+    assert result == 50_400
+
+
+@pytest.mark.asyncio
+async def test_get_max_tempo_none(subtensor, mocker):
+    """Tests get_max_tempo raises when constant is missing."""
+    # Preps
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_max_tempo(block_hash="block_hash")
+
+
+@pytest.mark.asyncio
+async def test_get_min_activity_cutoff_factor_milli(subtensor, mocker):
+    """Tests get_min_activity_cutoff_factor_milli method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    mocked_substrate_get_constant = mocker.AsyncMock(
+        return_value=mocker.Mock(value=1_000)
+    )
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    result = await subtensor.get_min_activity_cutoff_factor_milli(
+        block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MinActivityCutoffFactorMilli",
+        block_hash=fake_block_hash,
+    )
+    assert result == 1_000
+
+
+@pytest.mark.asyncio
+async def test_get_min_activity_cutoff_factor_milli_none(subtensor, mocker):
+    """Tests get_min_activity_cutoff_factor_milli raises when constant is missing."""
+    # Preps
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_min_activity_cutoff_factor_milli(block_hash="block_hash")
+
+
+@pytest.mark.asyncio
+async def test_get_min_tempo(subtensor, mocker):
+    """Tests get_min_tempo method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    mocked_substrate_get_constant = mocker.AsyncMock(
+        return_value=mocker.Mock(value=360)
+    )
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    result = await subtensor.get_min_tempo(block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MinTempo",
+        block_hash=fake_block_hash,
+    )
+    assert result == 360
+
+
+@pytest.mark.asyncio
+async def test_get_min_tempo_none(subtensor, mocker):
+    """Tests get_min_tempo raises when constant is missing."""
+    # Preps
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_min_tempo(block_hash="block_hash")
+
+
+@pytest.mark.asyncio
 async def test_neurons(subtensor, mocker):
     """Tests neurons method."""
     # Preps

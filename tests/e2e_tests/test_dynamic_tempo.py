@@ -7,12 +7,6 @@ import pytest
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
-from bittensor.core.settings import (
-    MAX_ACTIVITY_CUTOFF_FACTOR_MILLI,
-    MAX_TEMPO,
-    MIN_ACTIVITY_CUTOFF_FACTOR_MILLI,
-    MIN_TEMPO,
-)
 from tests.e2e_tests.utils import (
     AdminUtils,
     TestSubnet,
@@ -28,8 +22,10 @@ from tests.e2e_tests.utils import (
 )
 
 
-def _setup_subnet(subtensor, wallet, tempo=MIN_TEMPO, admin_freeze_window=0):
+def _setup_subnet(subtensor, wallet, tempo=None, admin_freeze_window=0):
     """Register and activate a subnet with the given tempo and freeze window."""
+    if tempo is None:
+        tempo = subtensor.chain.get_min_tempo()
     sn = TestSubnet(subtensor)
     sn.execute_steps(
         [
@@ -49,9 +45,11 @@ def _setup_subnet(subtensor, wallet, tempo=MIN_TEMPO, admin_freeze_window=0):
 
 
 async def _setup_subnet_async(
-    async_subtensor, wallet, tempo=MIN_TEMPO, admin_freeze_window=0
+    async_subtensor, wallet, tempo=None, admin_freeze_window=0
 ):
     """Register and activate a subnet with the given tempo and freeze window."""
+    if tempo is None:
+        tempo = await async_subtensor.chain.get_min_tempo()
     sn = TestSubnet(async_subtensor)
     await sn.async_execute_steps(
         [
@@ -82,7 +80,7 @@ def test_set_tempo(subtensor, alice_wallet):
     sn = _setup_subnet(subtensor, alice_wallet)
     netuid = sn.netuid
 
-    new_tempo = MIN_TEMPO + 10
+    new_tempo = subtensor.chain.get_min_tempo() + 10
     result = subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
@@ -120,7 +118,7 @@ async def test_set_tempo_async(async_subtensor, alice_wallet):
     sn = await _setup_subnet_async(async_subtensor, alice_wallet)
     netuid = sn.netuid
 
-    new_tempo = MIN_TEMPO + 10
+    new_tempo = await async_subtensor.chain.get_min_tempo() + 10
     result = await async_subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
@@ -156,7 +154,8 @@ def test_trigger_epoch(subtensor, alice_wallet):
         5. Call trigger_epoch again — expect success.
         6. Verify pending epoch and freeze window state.
     """
-    sn = _setup_subnet(subtensor, alice_wallet, tempo=MAX_TEMPO, admin_freeze_window=0)
+    max_tempo = subtensor.chain.get_max_tempo()
+    sn = _setup_subnet(subtensor, alice_wallet, tempo=max_tempo, admin_freeze_window=0)
     netuid = sn.netuid
 
     sn.execute_steps([SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 10)])
@@ -207,8 +206,9 @@ async def test_trigger_epoch_async(async_subtensor, alice_wallet):
         5. Call trigger_epoch again — expect success.
         6. Verify pending epoch and freeze window state.
     """
+    max_tempo = await async_subtensor.chain.get_max_tempo()
     sn = await _setup_subnet_async(
-        async_subtensor, alice_wallet, tempo=MAX_TEMPO, admin_freeze_window=0
+        async_subtensor, alice_wallet, tempo=max_tempo, admin_freeze_window=0
     )
     netuid = sn.netuid
 
@@ -316,13 +316,16 @@ def test_commit_reveal_after_owner_set_tempo(subtensor, alice_wallet):
     BLOCK_TIME = 0.25 if subtensor.chain.is_fast_blocks() else 12.0
     logging.console.info(f"Using block time: {BLOCK_TIME}")
 
+    max_tempo = subtensor.chain.get_max_tempo()
+    min_tempo = subtensor.chain.get_min_tempo()
+
     sn = TestSubnet(subtensor)
     sn.execute_steps(
         [
             SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
             SUDO_SET_NETWORK_RATE_LIMIT(alice_wallet, AdminUtils, True, 0),
             REGISTER_SUBNET(alice_wallet),
-            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, MAX_TEMPO),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, max_tempo),
             ACTIVATE_SUBNET(alice_wallet),
             SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED(
                 alice_wallet, AdminUtils, True, NETUID, True
@@ -332,7 +335,7 @@ def test_commit_reveal_after_owner_set_tempo(subtensor, alice_wallet):
     )
     netuid = sn.netuid
 
-    owner_tempo = MIN_TEMPO
+    owner_tempo = min_tempo
     tempo_result = subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
@@ -423,13 +426,16 @@ async def test_commit_reveal_after_owner_set_tempo_async(async_subtensor, alice_
     BLOCK_TIME = 0.25 if await async_subtensor.chain.is_fast_blocks() else 12.0
     logging.console.info(f"Using block time: {BLOCK_TIME}")
 
+    max_tempo = await async_subtensor.chain.get_max_tempo()
+    min_tempo = await async_subtensor.chain.get_min_tempo()
+
     sn = TestSubnet(async_subtensor)
     await sn.async_execute_steps(
         [
             SUDO_SET_ADMIN_FREEZE_WINDOW(alice_wallet, AdminUtils, True, 0),
             SUDO_SET_NETWORK_RATE_LIMIT(alice_wallet, AdminUtils, True, 0),
             REGISTER_SUBNET(alice_wallet),
-            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, MAX_TEMPO),
+            SUDO_SET_TEMPO(alice_wallet, AdminUtils, True, NETUID, max_tempo),
             ACTIVATE_SUBNET(alice_wallet),
             SUDO_SET_COMMIT_REVEAL_WEIGHTS_ENABLED(
                 alice_wallet, AdminUtils, True, NETUID, True
@@ -439,7 +445,7 @@ async def test_commit_reveal_after_owner_set_tempo_async(async_subtensor, alice_
     )
     netuid = sn.netuid
 
-    owner_tempo = MIN_TEMPO
+    owner_tempo = min_tempo
     tempo_result = await async_subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
@@ -534,7 +540,7 @@ def test_root_set_activity_cutoff_factor(subtensor, alice_wallet):
     sn = _setup_subnet(subtensor, alice_wallet)
     netuid = sn.netuid
 
-    new_factor = MIN_ACTIVITY_CUTOFF_FACTOR_MILLI + 500
+    new_factor = subtensor.chain.get_min_activity_cutoff_factor_milli() + 500
     result = subtensor.extrinsics.root_set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
@@ -562,7 +568,9 @@ async def test_root_set_activity_cutoff_factor_async(async_subtensor, alice_wall
     sn = await _setup_subnet_async(async_subtensor, alice_wallet)
     netuid = sn.netuid
 
-    new_factor = MIN_ACTIVITY_CUTOFF_FACTOR_MILLI + 500
+    new_factor = (
+        await async_subtensor.chain.get_min_activity_cutoff_factor_milli() + 500
+    )
     result = await async_subtensor.extrinsics.root_set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
@@ -584,18 +592,23 @@ def test_tempo_control_negative_cases(subtensor, alice_wallet, bob_wallet):
     Steps:
         1. Register and activate a subnet (owner = alice).
         2. Non-owner (bob) attempts set_tempo — expect failure.
-        3. Owner sets tempo below MIN_TEMPO — expect failure.
-        4. Owner sets tempo above MAX_TEMPO — expect failure.
-        5. Owner sets activity cutoff factor above MAX — expect failure.
-        6. Owner sets activity cutoff factor below MIN — expect failure.
+        3. Owner sets tempo below chain minimum — expect failure.
+        4. Owner sets tempo above chain maximum — expect failure.
+        5. Owner sets activity cutoff factor above chain maximum — expect failure.
+        6. Owner sets activity cutoff factor below chain minimum — expect failure.
     """
     sn = _setup_subnet(subtensor, alice_wallet)
     netuid = sn.netuid
 
+    min_tempo = subtensor.chain.get_min_tempo()
+    max_tempo = subtensor.chain.get_max_tempo()
+    min_cutoff = subtensor.chain.get_min_activity_cutoff_factor_milli()
+    max_cutoff = subtensor.chain.get_max_activity_cutoff_factor_milli()
+
     result = subtensor.extrinsics.set_tempo(
         wallet=bob_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO + 5,
+        tempo=min_tempo + 5,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -604,7 +617,7 @@ def test_tempo_control_negative_cases(subtensor, alice_wallet, bob_wallet):
     result = subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO - 1,
+        tempo=min_tempo - 1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -613,7 +626,7 @@ def test_tempo_control_negative_cases(subtensor, alice_wallet, bob_wallet):
     result = subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MAX_TEMPO + 1,
+        tempo=max_tempo + 1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -622,14 +635,14 @@ def test_tempo_control_negative_cases(subtensor, alice_wallet, bob_wallet):
     result = subtensor.extrinsics.set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
-        factor_milli=MAX_ACTIVITY_CUTOFF_FACTOR_MILLI + 1,
+        factor_milli=max_cutoff + 1,
     )
     assert result.success is False
 
     result = subtensor.extrinsics.set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
-        factor_milli=MIN_ACTIVITY_CUTOFF_FACTOR_MILLI - 1,
+        factor_milli=min_cutoff - 1,
     )
     assert result.success is False
 
@@ -644,18 +657,23 @@ async def test_tempo_control_negative_cases_async(
     Steps:
         1. Register and activate a subnet (owner = alice).
         2. Non-owner (bob) attempts set_tempo — expect failure.
-        3. Owner sets tempo below MIN_TEMPO — expect failure.
-        4. Owner sets tempo above MAX_TEMPO — expect failure.
-        5. Owner sets activity cutoff factor above MAX — expect failure.
-        6. Owner sets activity cutoff factor below MIN — expect failure.
+        3. Owner sets tempo below chain minimum — expect failure.
+        4. Owner sets tempo above chain maximum — expect failure.
+        5. Owner sets activity cutoff factor above chain maximum — expect failure.
+        6. Owner sets activity cutoff factor below chain minimum — expect failure.
     """
     sn = await _setup_subnet_async(async_subtensor, alice_wallet)
     netuid = sn.netuid
 
+    min_tempo = await async_subtensor.chain.get_min_tempo()
+    max_tempo = await async_subtensor.chain.get_max_tempo()
+    min_cutoff = await async_subtensor.chain.get_min_activity_cutoff_factor_milli()
+    max_cutoff = await async_subtensor.chain.get_max_activity_cutoff_factor_milli()
+
     result = await async_subtensor.extrinsics.set_tempo(
         wallet=bob_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO + 5,
+        tempo=min_tempo + 5,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -664,7 +682,7 @@ async def test_tempo_control_negative_cases_async(
     result = await async_subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO - 1,
+        tempo=min_tempo - 1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -673,7 +691,7 @@ async def test_tempo_control_negative_cases_async(
     result = await async_subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MAX_TEMPO + 1,
+        tempo=max_tempo + 1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -682,14 +700,14 @@ async def test_tempo_control_negative_cases_async(
     result = await async_subtensor.extrinsics.set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
-        factor_milli=MAX_ACTIVITY_CUTOFF_FACTOR_MILLI + 1,
+        factor_milli=max_cutoff + 1,
     )
     assert result.success is False
 
     result = await async_subtensor.extrinsics.set_activity_cutoff_factor(
         wallet=alice_wallet,
         netuid=netuid,
-        factor_milli=MIN_ACTIVITY_CUTOFF_FACTOR_MILLI - 1,
+        factor_milli=min_cutoff - 1,
     )
     assert result.success is False
 
@@ -703,7 +721,9 @@ def test_set_tempo_rejected_in_freeze_window(subtensor, alice_wallet):
         2. Set admin freeze window, trigger epoch to enter freeze state.
         3. Attempt set_tempo while frozen — expect failure.
     """
-    sn = _setup_subnet(subtensor, alice_wallet, tempo=MAX_TEMPO, admin_freeze_window=0)
+    max_tempo = subtensor.chain.get_max_tempo()
+    min_tempo = subtensor.chain.get_min_tempo()
+    sn = _setup_subnet(subtensor, alice_wallet, tempo=max_tempo, admin_freeze_window=0)
     netuid = sn.netuid
 
     sn.execute_steps(
@@ -727,7 +747,7 @@ def test_set_tempo_rejected_in_freeze_window(subtensor, alice_wallet):
     result = subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO,
+        tempo=min_tempo,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -744,8 +764,10 @@ async def test_set_tempo_rejected_in_freeze_window_async(async_subtensor, alice_
         2. Set admin freeze window, trigger epoch to enter freeze state.
         3. Attempt set_tempo while frozen — expect failure.
     """
+    max_tempo = await async_subtensor.chain.get_max_tempo()
+    min_tempo = await async_subtensor.chain.get_min_tempo()
     sn = await _setup_subnet_async(
-        async_subtensor, alice_wallet, tempo=MAX_TEMPO, admin_freeze_window=0
+        async_subtensor, alice_wallet, tempo=max_tempo, admin_freeze_window=0
     )
     netuid = sn.netuid
 
@@ -770,7 +792,7 @@ async def test_set_tempo_rejected_in_freeze_window_async(async_subtensor, alice_
     result = await async_subtensor.extrinsics.set_tempo(
         wallet=alice_wallet,
         netuid=netuid,
-        tempo=MIN_TEMPO,
+        tempo=min_tempo,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )

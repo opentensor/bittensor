@@ -3112,6 +3112,99 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return []
 
+    async def get_max_activity_cutoff_factor_milli(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the upper bound for the activity-cutoff factor (per-mille).
+
+        This chain constant defines the maximum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The upper bound for the activity-cutoff factor in per-mille.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxActivityCutoffFactorMilli",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxActivityCutoffFactorMilli constant.")
+
+        return result.value
+
+    async def get_max_epochs_per_block(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the per-block cap on the number of subnet epochs that may execute in a single block step.
+
+        When more subnets are due for an epoch than this cap allows, excess epochs are deferred to the next block via
+        ``PendingEpochAt``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The maximum number of subnet epochs allowed per block.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxEpochsPerBlock",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxEpochsPerBlock constant.")
+
+        return result.value
+
+    async def get_max_tempo(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the upper bound for owner-set tempo.
+
+        This chain constant defines the maximum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The maximum allowed tempo value in blocks.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxTempo",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxTempo constant.")
+
+        return result.value
+
     async def get_mechanism_emission_split(
         self,
         netuid: int,
@@ -3370,6 +3463,68 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
         return public_key_bytes
+
+    async def get_min_activity_cutoff_factor_milli(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the lower bound for the activity-cutoff factor (per-mille).
+
+        This chain constant defines the minimum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The lower bound for the activity-cutoff factor in per-mille.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinActivityCutoffFactorMilli",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinActivityCutoffFactorMilli constant.")
+
+        return result.value
+
+    async def get_min_tempo(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the lower bound for owner-set tempo.
+
+        This chain constant defines the minimum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``. Also serves as the fixed cooldown between consecutive ``set_tempo`` calls.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The minimum allowed tempo value in blocks.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinTempo",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinTempo constant.")
+
+        return result.value
 
     async def get_minimum_required_stake(self) -> Balance:
         """Returns the minimum required stake threshold for nominator cleanup operations.

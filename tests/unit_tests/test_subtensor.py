@@ -1656,6 +1656,111 @@ def test_get_existential_deposit(subtensor, mocker):
     assert result == Balance.from_rao(value)
 
 
+def test_get_max_activity_cutoff_factor_milli(subtensor, mocker):
+    """Successful get_max_activity_cutoff_factor_milli call."""
+    # Prep
+    block = 123
+    mocked_query_constant = mocker.MagicMock()
+    mocked_query_constant.return_value.value = 50_000
+    subtensor.substrate.get_constant = mocked_query_constant
+
+    # Call
+    result = subtensor.get_max_activity_cutoff_factor_milli(block=block)
+
+    # Assertions
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxActivityCutoffFactorMilli",
+        block_hash=subtensor.substrate.get_block_hash.return_value,
+    )
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    assert result == 50_000
+
+
+def test_get_max_epochs_per_block(subtensor, mocker):
+    """Successful get_max_epochs_per_block call."""
+    # Prep
+    block = 123
+    mocked_query_constant = mocker.MagicMock()
+    mocked_query_constant.return_value.value = 32
+    subtensor.substrate.get_constant = mocked_query_constant
+
+    # Call
+    result = subtensor.get_max_epochs_per_block(block=block)
+
+    # Assertions
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxEpochsPerBlock",
+        block_hash=subtensor.substrate.get_block_hash.return_value,
+    )
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    assert result == 32
+
+
+def test_get_max_tempo(subtensor, mocker):
+    """Successful get_max_tempo call."""
+    # Prep
+    block = 123
+    mocked_query_constant = mocker.MagicMock()
+    mocked_query_constant.return_value.value = 50_400
+    subtensor.substrate.get_constant = mocked_query_constant
+
+    # Call
+    result = subtensor.get_max_tempo(block=block)
+
+    # Assertions
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MaxTempo",
+        block_hash=subtensor.substrate.get_block_hash.return_value,
+    )
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    assert result == 50_400
+
+
+def test_get_min_activity_cutoff_factor_milli(subtensor, mocker):
+    """Successful get_min_activity_cutoff_factor_milli call."""
+    # Prep
+    block = 123
+    mocked_query_constant = mocker.MagicMock()
+    mocked_query_constant.return_value.value = 1_000
+    subtensor.substrate.get_constant = mocked_query_constant
+
+    # Call
+    result = subtensor.get_min_activity_cutoff_factor_milli(block=block)
+
+    # Assertions
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MinActivityCutoffFactorMilli",
+        block_hash=subtensor.substrate.get_block_hash.return_value,
+    )
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    assert result == 1_000
+
+
+def test_get_min_tempo(subtensor, mocker):
+    """Successful get_min_tempo call."""
+    # Prep
+    block = 123
+    mocked_query_constant = mocker.MagicMock()
+    mocked_query_constant.return_value.value = 360
+    subtensor.substrate.get_constant = mocked_query_constant
+
+    # Call
+    result = subtensor.get_min_tempo(block=block)
+
+    # Assertions
+    mocked_query_constant.assert_called_once_with(
+        module_name="SubtensorModule",
+        constant_name="MinTempo",
+        block_hash=subtensor.substrate.get_block_hash.return_value,
+    )
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    assert result == 360
+
+
 def test_reveal_weights(subtensor, fake_wallet, mocker):
     """Successful test_reveal_weights call."""
     # Preps
