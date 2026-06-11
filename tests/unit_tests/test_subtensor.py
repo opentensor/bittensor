@@ -5036,7 +5036,7 @@ def test_get_root_claimable_all_rates(mocker, subtensor):
     # Preps
     hotkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_value = [(14, {"bits": 6520190})]
+    fake_value = {14: {"bits": 6520190}}
     fake_result = mocker.MagicMock(value=fake_value)
     fake_result.__iter__ = fake_value
     mocked_query = mocker.patch.object(
