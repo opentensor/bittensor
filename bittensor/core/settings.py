@@ -84,14 +84,6 @@ DEFAULT_MEV_PROTECTION = os.getenv("BT_MEV_PROTECTION", "").lower() in (
 # Public_key size for ML-KEM-768 (must be exactly 1184 bytes)
 MLKEM768_PUBLIC_KEY_SIZE = 1184
 
-# TODO: should be available via pallet.constant call (after subtensor update) - need to replace
-# Chain bounds for owner-set tempo.
-MIN_TEMPO = 360
-MAX_TEMPO = 50_400
-# Chain bounds for activity-cutoff factor in per-mille.
-MIN_ACTIVITY_CUTOFF_FACTOR_MILLI = 1_000
-MAX_ACTIVITY_CUTOFF_FACTOR_MILLI = 50_000
-
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
 NETWORK_EXPLORER_MAP = {
