@@ -25,6 +25,11 @@ from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
 from .version import check_version, VersionCheckError
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.types import ExtrinsicResponse, NeuronCertificateResponse
