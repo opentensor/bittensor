@@ -673,3 +673,27 @@ class LockState(TypedDict):
     locked_mass: "Balance"
     conviction: float
     last_update: int
+
+
+@dataclass(frozen=True)
+class EpochScheduleState:
+    """Snapshot of on-chain epoch schedule state at a given block.
+
+    Aggregates storage fields needed by the SDK and ``bittensor-drand`` to compute epoch predictions.
+    All fields are queried at the same ``block_hash`` to ensure consistency.
+
+    Attributes:
+        last_epoch_block: The block at which the last epoch fired for this subnet.
+        pending_epoch_at: Block at which an owner-triggered epoch is scheduled (``0`` = none).
+        subnet_epoch_index: Monotonically increasing epoch counter for this subnet.
+        tempo: The subnet's tempo (epoch period in blocks).
+        blocks_since_last_step: Blocks elapsed since the last epoch.
+        current_block: The reference block at which the snapshot was taken.
+    """
+
+    last_epoch_block: int
+    pending_epoch_at: int
+    subnet_epoch_index: int
+    tempo: Optional[int]
+    blocks_since_last_step: Optional[int]
+    current_block: int
