@@ -132,13 +132,13 @@ def test_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet):
     logging.console.info(f"Unstake small amount response: {response}")
     assert response.success
 
-    # Unstake must not reduce locked_mass
+    # Unstake must not slash locked_mass (decaying locks lose a tiny amount per block)
     lock_unchanged = subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
-    assert lock_unchanged["locked_mass"].rao >= lock_after["locked_mass"].rao
+    assert lock_unchanged["locked_mass"].rao > lock_after["locked_mass"].rao * 0.99
 
 
 @pytest.mark.asyncio
@@ -266,13 +266,13 @@ async def test_owner_lock_lifecycle_async(async_subtensor, alice_wallet, bob_wal
     logging.console.info(f"Unstake small amount response: {response}")
     assert response.success
 
-    # Unstake must not reduce locked_mass
+    # Unstake must not slash locked_mass (decaying locks lose a tiny amount per block)
     lock_unchanged = await async_subtensor.staking.get_stake_lock(
         coldkey_ss58=alice_wallet.coldkey.ss58_address,
         netuid=alice_sn.netuid,
         hotkey_ss58=alice_wallet.hotkey.ss58_address,
     )
-    assert lock_unchanged["locked_mass"].rao >= lock_after["locked_mass"].rao
+    assert lock_unchanged["locked_mass"].rao > lock_after["locked_mass"].rao * 0.99
 
 
 def test_non_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet, charlie_wallet):
