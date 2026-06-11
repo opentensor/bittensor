@@ -5,6 +5,8 @@
 ## What's Changed
 
 * Pins cyscale to 0.4.0 to avoid accidental upgrades which break `Subtensor.get_root_claimable_all_rates`
+* Fix for newer aiohttp versions in testing
+* Improves flaky tests
 
 **Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.0...v10.4.1
 
