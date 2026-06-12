@@ -1121,6 +1121,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def blocks_until_next_epoch(
         self,
         netuid: int,
+        *,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -2885,7 +2886,11 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             An `EpochScheduleState` populated from on-chain storage.
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash = (
+            await self.determine_block_hash(block, block_hash, reuse_block)
+            or await self.substrate.get_chain_head()
+        )
+
         block_number = block or await self.substrate.get_block_number(
             block_hash=block_hash
         )
@@ -10178,7 +10183,7 @@ class AsyncSubtensor(SubtensorMixin):
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
-        Triggers an immediate epoch on a subnet. Owner (coldkey) only.
+        Schedules an owner-triggered epoch to fire after the admin freeze window elapses. Owner (coldkey) only.
 
         Parameters:
             wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).

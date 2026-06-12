@@ -68,6 +68,8 @@ class SubnetHyperparameters(InfoBase):
     def _decode_value(value: Any) -> Any:
         """Decode a single ``{<type_tag>: <payload>}`` hyperparameter value."""
         if isinstance(value, dict) and set(value.keys()) == {"bits"}:
+            # V2 struct encodes fixed-point fields as {"bits": N} without a type tag. All V2 fixed-point fields are
+            # I32F32. V3 entries carry the enum variant tag and are handled below.
             return fixed_to_float(value["bits"], frac_bits=32)
         if not isinstance(value, dict) or len(value) != 1:
             return value

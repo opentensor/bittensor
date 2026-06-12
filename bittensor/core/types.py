@@ -694,6 +694,6 @@ class EpochScheduleState:
     last_epoch_block: int
     pending_epoch_at: int
     subnet_epoch_index: int
-    tempo: Optional[int]
-    blocks_since_last_step: Optional[int]
+    tempo: int
+    blocks_since_last_step: int
     current_block: int

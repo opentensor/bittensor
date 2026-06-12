@@ -902,7 +902,7 @@ class Subtensor(SubtensorMixin):
         return None if len(call) == 0 else (block - int(call[uid]))
 
     def blocks_until_next_epoch(
-        self, netuid: int, block: Optional[int] = None
+        self, netuid: int, *, block: Optional[int] = None
     ) -> Optional[int]:
         """Returns the number of blocks until the next epoch for the given subnet.
 
@@ -2347,9 +2347,9 @@ class Subtensor(SubtensorMixin):
             last_epoch_block=self.get_last_epoch_block(netuid, block=block_number),
             pending_epoch_at=self.get_pending_epoch_at(netuid, block=block_number),
             subnet_epoch_index=self.get_subnet_epoch_index(netuid, block=block_number),
-            tempo=self.tempo(netuid, block=block_number),
-            blocks_since_last_step=self.blocks_since_last_step(
-                netuid, block=block_number
+            tempo=cast(int, self.tempo(netuid, block=block_number)),
+            blocks_since_last_step=cast(
+                int, self.blocks_since_last_step(netuid, block=block_number)
             ),
             current_block=block_number,
         )
@@ -8725,7 +8725,7 @@ class Subtensor(SubtensorMixin):
         wait_for_revealed_execution: bool = True,
     ) -> ExtrinsicResponse:
         """
-        Triggers an immediate epoch on a subnet. Owner (coldkey) only.
+        Schedules an owner-triggered epoch to fire after the admin freeze window elapses. Owner (coldkey) only.
 
         Parameters:
             wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).

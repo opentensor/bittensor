@@ -231,7 +231,7 @@ async def trigger_epoch_extrinsic(
     wait_for_revealed_execution: bool = True,
 ) -> ExtrinsicResponse:
     """
-    Triggers an immediate epoch on a subnet. Owner (coldkey) only.
+    Schedules an owner-triggered epoch to fire after the admin freeze window elapses. Owner (coldkey) only.
 
     Parameters:
         subtensor: The AsyncSubtensor client instance used for blockchain interaction.
