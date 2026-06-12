@@ -12,7 +12,7 @@ from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import ScaleValue
 from scalecodec.base import ScaleType
-from scalecodec.utils.math import FixedPoint, fixed_to_decimal
+from scalecodec.utils.math import FixedPoint
 
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -153,7 +153,6 @@ from bittensor.core.types import (
     SubtensorMixin,
     UIDs,
     Weights,
-    PositionResponse,
     NeuronCertificateResponse,
     CommitmentOfResponse,
     CrowdloansResponse,
@@ -161,7 +160,9 @@ from bittensor.core.types import (
 )
 from bittensor.utils import (
     Certificate,
+    ChainFeatureDisabledWarning,
     decode_hex_identity_dict,
+    deprecated_message,
     format_error_message,
     get_caller_name,
     get_mechid_storage_index,
@@ -176,13 +177,6 @@ from bittensor.utils.balance import (
     fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.liquidity import (
-    LiquidityPosition,
-    calculate_fees,
-    get_fees,
-    price_to_tick,
-    tick_to_price,
-)
 
 if TYPE_CHECKING:
     from async_substrate_interface.sync_substrate import QueryMapResult
@@ -2427,10 +2421,9 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         netuid: int,
         block: Optional[int] = None,
-    ) -> Optional[list[LiquidityPosition]]:
+    ) -> list:
         """
         Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
-        Calculates associated fee rewards based on current global and tick-level fee data.
 
         Parameters:
             wallet: Wallet instance to fetch positions for.
@@ -2438,164 +2431,17 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number for the query.
 
         Returns:
-            List of liquidity positions, or None if subnet does not exist.
+            Always returns an empty list. User liquidity positions (Uniswap v3) have been permanently removed
+            from the chain and replaced by the Balancer swap mechanism.
         """
-        if not self.subnet_exists(netuid=netuid):
-            logging.debug(f"Subnet {netuid} does not exist.")
-            return None
-
-        if not self.is_subnet_active(netuid=netuid):
-            logging.debug(f"Subnet {netuid} is not active.")
-            return None
-
-        # Fetch positions
-        positions_response = self.query_map(
-            module="Swap",
-            name="Positions",
-            block=block,
-            params=[netuid, wallet.coldkeypub.ss58_address],
+        deprecated_message(
+            message="User liquidity positions have been permanently removed from the chain. "
+            "The Uniswap v3 swap mechanism has been replaced by the Balancer swap. "
+            "This method will always return an empty list.",
+            category=ChainFeatureDisabledWarning,
+            stacklevel=2,
         )
-        if len(positions_response.records) == 0:
-            return []
-
-        block_hash = self.determine_block_hash(block)
-
-        # Fetch global fees and current price
-        fee_global_tao_query_sk = self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalTao",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        fee_global_alpha_query_sk = self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalAlpha",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        sqrt_price_query_sk = self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="AlphaSqrtPrice",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        fee_global_tao_query, fee_global_alpha_query, sqrt_price_query = (
-            self.substrate.query_multi(
-                storage_keys=[
-                    fee_global_tao_query_sk,
-                    fee_global_alpha_query_sk,
-                    sqrt_price_query_sk,
-                ],
-                block_hash=block_hash,
-            )
-        )
-
-        fee_global_tao_raw: FixedPoint = fee_global_tao_query[1]  # type: ignore[assignment]
-        fee_global_alpha_raw: FixedPoint = fee_global_alpha_query[1]  # type: ignore[assignment]
-        sqrt_price_raw: FixedPoint = sqrt_price_query[1]  # type: ignore[assignment]
-        fee_global_tao = fixed_to_float(fee_global_tao_raw)
-        fee_global_alpha = fixed_to_float(fee_global_alpha_raw)
-        sqrt_price = fixed_to_float(sqrt_price_raw)
-        current_tick = price_to_tick(sqrt_price**2)
-
-        positions_values: list[tuple[PositionResponse, int, int]] = []
-        positions_storage_keys: list[StorageKey] = []
-        position: PositionResponse
-        for _, position in positions_response:
-            tick_low_idx = position["tick_low"]
-            tick_high_idx = position["tick_high"]
-
-            tick_low_sk = self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_low_idx],
-                block_hash=block_hash,
-            )
-            tick_high_sk = self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_high_idx],
-                block_hash=block_hash,
-            )
-            positions_values.append((position, tick_low_idx, tick_high_idx))
-            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
-        # query all our ticks at once
-        ticks_query = self.substrate.query_multi(
-            positions_storage_keys, block_hash=block_hash
-        )
-        # iterator with just the values
-        tick_values: list[dict] = [x[1] for x in ticks_query]  # type: ignore
-        ticks = iter(tick_values)
-        positions: list[LiquidityPosition] = []
-        for position, tick_low_idx, tick_high_idx in positions_values:
-            tick_low = next(ticks)
-            tick_high = next(ticks)
-
-            # Calculate fees above/below range for both tokens
-            tao_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            tao_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
-            alpha_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            alpha_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
-
-            # Calculate fees earned by position
-            fees_tao, fees_alpha = calculate_fees(
-                position=position,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                tao_fees_below_low=tao_below,
-                tao_fees_above_high=tao_above,
-                alpha_fees_below_low=alpha_below,
-                alpha_fees_above_high=alpha_above,
-                netuid=netuid,
-            )
-
-            positions.append(
-                LiquidityPosition(
-                    id=position.get("id"),
-                    price_low=Balance.from_tao(tick_to_price(position.get("tick_low"))),
-                    price_high=Balance.from_tao(
-                        tick_to_price(position.get("tick_high"))
-                    ),
-                    liquidity=Balance.from_rao(position.get("liquidity")),
-                    fees_tao=fees_tao,
-                    fees_alpha=fees_alpha,
-                    netuid=position.get("netuid"),
-                )
-            )
-
-        return positions
+        return []
 
     def get_mechanism_emission_split(
         self, netuid: int, block: Optional[int] = None
@@ -3440,14 +3286,15 @@ class Subtensor(SubtensorMixin):
         Notes:
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
-        query: ScaleType[list[tuple[int, FixedPoint]]] = self.substrate.query(
+        query: ScaleType[dict[int, FixedPoint]] = self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimable",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
         return {
-            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value
+            netuid: fixed_to_float(bits, frac_bits=32)
+            for (netuid, bits) in query.value.items()
         }
 
     def get_root_claimable_stake(
@@ -3977,7 +3824,7 @@ class Subtensor(SubtensorMixin):
         """Gets the current Alpha price in TAO for all subnets.
 
         Parameters:
-            block: The blockchain block number for the query. If `None`, queries the current chain head.
+            block: The blockchain block number for the query. If ``None``, queries the current chain head.
 
         Returns:
             A dictionary mapping subnet unique ID (netuid) to the current Alpha price in TAO units.
@@ -3986,23 +3833,27 @@ class Subtensor(SubtensorMixin):
             Subnet 0 (root network) always has a price of 1 TAO since it uses TAO directly rather than Alpha.
         """
         block_hash = self.determine_block_hash(block=block)
+        if block_hash is None:
+            block_hash = self.substrate.get_chain_head()
 
-        current_sqrt_prices = self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
+        if self._runtime_method_exists(
+            api="SwapRuntimeApi",
+            method="current_alpha_price_all",
             block_hash=block_hash,
-            page_size=129,  # total number of subnets
-        )
+        ):
+            prices_rao = cast(
+                list[dict],
+                self.substrate.runtime_call(
+                    api="SwapRuntimeApi",
+                    method="current_alpha_price_all",
+                    block_hash=block_hash,
+                ),
+            )
+            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
 
-        prices = {}
-        for id_, current_sqrt_price_bits in current_sqrt_prices:
-            current_sqrt_price = fixed_to_decimal(current_sqrt_price_bits)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_tao(float(current_price))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
+        prices = {0: Balance.from_tao(1)}
+        for netuid in self.get_all_subnets_netuid(block=block):
+            prices[netuid] = self.get_subnet_price(netuid, block=block)
         return prices
 
     def get_subnet_reveal_period_epochs(
@@ -5846,6 +5697,7 @@ class Subtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
+                    version_key=version_key,
                     mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
@@ -6288,9 +6140,8 @@ class Subtensor(SubtensorMixin):
         method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
-            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
-                with the pure proxy.
+            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address can either be the spawner or an account
+                with an "Any" proxy relationship to the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
                 returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via

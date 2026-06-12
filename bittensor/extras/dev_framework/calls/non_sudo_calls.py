@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 397
+    Subtensor spec version: 408
 """
 
 from collections import namedtuple
@@ -430,6 +430,9 @@ KILL_PURE = namedtuple(
 KILL_STORAGE = namedtuple(
     "KILL_STORAGE", ["wallet", "pallet", "keys"]
 )  # args: [keys: Vec<Key>]  | Pallet: System
+LOCK_STAKE = namedtuple(
+    "LOCK_STAKE", ["wallet", "pallet", "hotkey", "netuid", "amount"]
+)  # args: [hotkey: T::AccountId, netuid: NetUid, amount: AlphaBalance]  | Pallet: SubtensorModule
 MIGRATE = namedtuple(
     "MIGRATE", ["wallet", "pallet", "weight_limit"]
 )  # args: [weight_limit: Weight]  | Pallet: Contracts
@@ -437,6 +440,9 @@ MODIFY_POSITION = namedtuple(
     "MODIFY_POSITION",
     ["wallet", "pallet", "hotkey", "netuid", "position_id", "liquidity_delta"],
 )  # args: [hotkey: T::AccountId, netuid: NetUid, position_id: PositionId, liquidity_delta: i64]  | Pallet: Swap
+MOVE_LOCK = namedtuple(
+    "MOVE_LOCK", ["wallet", "pallet", "destination_hotkey", "netuid"]
+)  # args: [destination_hotkey: T::AccountId, netuid: NetUid]  | Pallet: SubtensorModule
 MOVE_STAKE = namedtuple(
     "MOVE_STAKE",
     [
@@ -727,6 +733,9 @@ SET_ON_INITIALIZE_WEIGHT = namedtuple(
 SET_PENDING_CHILDKEY_COOLDOWN = namedtuple(
     "SET_PENDING_CHILDKEY_COOLDOWN", ["wallet", "pallet", "cooldown"]
 )  # args: [cooldown: u64]  | Pallet: SubtensorModule
+SET_PERPETUAL_LOCK = namedtuple(
+    "SET_PERPETUAL_LOCK", ["wallet", "pallet", "netuid", "enabled"]
+)  # args: [netuid: NetUid, enabled: bool]  | Pallet: SubtensorModule
 SET_REAL_PAYS_FEE = namedtuple(
     "SET_REAL_PAYS_FEE", ["wallet", "pallet", "delegate", "pays_fee"]
 )  # args: [delegate: AccountIdLookupOf<T>, pays_fee: bool]  | Pallet: Proxy

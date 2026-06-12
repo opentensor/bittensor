@@ -3367,193 +3367,6 @@ async def test_unstake_all(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_liquidity_list_subnet_does_not_exits(subtensor, mocker):
-    """Test get_liquidity_list returns None when subnet doesn't exist."""
-    # Preps
-    mocker.patch.object(subtensor, "subnet_exists", return_value=False)
-
-    # Call
-    result = await subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
-
-    # Asserts
-    subtensor.subnet_exists.assert_awaited_once_with(netuid=1)
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_liquidity_list_subnet_is_not_active(subtensor, mocker):
-    """Test get_liquidity_list returns None when subnet is not active."""
-    # Preps
-    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
-    mocker.patch.object(subtensor, "is_subnet_active", return_value=False)
-
-    # Call
-    result = await subtensor.get_liquidity_list(wallet=mocker.Mock(), netuid=1)
-
-    # Asserts
-    subtensor.subnet_exists.assert_awaited_once_with(netuid=1)
-    subtensor.is_subnet_active.assert_awaited_once_with(netuid=1)
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_liquidity_list_happy_path(subtensor, fake_wallet, mocker):
-    """Tests `get_liquidity_list` returns the correct value."""
-    # Preps
-    netuid = 2
-
-    mocker.patch.object(subtensor, "subnet_exists", return_value=True)
-    mocker.patch.object(subtensor, "is_subnet_active", return_value=True)
-    mocker.patch.object(subtensor, "determine_block_hash")
-
-    mocker.patch.object(
-        async_subtensor, "price_to_tick", return_value=Balance.from_tao(1.0, netuid)
-    )
-    mocker.patch.object(
-        async_subtensor,
-        "calculate_fees",
-        return_value=(Balance.from_tao(0.0), Balance.from_tao(0.0, netuid)),
-    )
-
-    mocked_substrate_query_multi = mocker.AsyncMock(
-        side_effect=[
-            [
-                (None, {"bits": 0}),
-                (None, {"bits": 0}),
-                (None, {"bits": 18446744073709551616}),
-            ],
-            [
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": 1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-                (
-                    None,
-                    {
-                        "liquidity_net": -1000000000000,
-                        "liquidity_gross": 1000000000000,
-                        "fees_out_tao": {"bits": 0},
-                        "fees_out_alpha": {"bits": 0},
-                    },
-                ),
-            ],
-        ]
-    )
-
-    mocker.patch.object(
-        subtensor.substrate, "query_multi", mocked_substrate_query_multi
-    )
-
-    fake_positions = [
-        [
-            (2,),
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 206189,
-                "tick_high": 208196,
-                "liquidity": 1000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-        [
-            2,
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 216189,
-                "tick_high": 198196,
-                "liquidity": 2000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-        [
-            2,
-            {
-                "id": 2,
-                "netuid": 2,
-                "tick_low": 226189,
-                "tick_high": 188196,
-                "liquidity": 3000000000000,
-                "fees_tao": {"bits": 0},
-                "fees_alpha": {"bits": 0},
-            },
-        ],
-    ]
-
-    fake_result = mocker.AsyncMock(records=fake_positions, autospec=list)
-    fake_result.__aiter__.return_value = iter(fake_positions)
-
-    mocked_query_map = mocker.AsyncMock(return_value=fake_result)
-    mocker.patch.object(subtensor, "query_map", new=mocked_query_map)
-
-    # Call
-
-    result = await subtensor.get_liquidity_list(wallet=fake_wallet, netuid=netuid)
-
-    # Asserts
-    subtensor.determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
-    assert async_subtensor.price_to_tick.call_count == 1
-    assert async_subtensor.calculate_fees.call_count == len(fake_positions)
-
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        name="Positions",
-        params=[netuid, fake_wallet.coldkeypub.ss58_address],
-        block=None,
-        block_hash=None,
-        reuse_block=False,
-    )
-    assert len(result) == len(fake_positions)
-    assert all([isinstance(p, async_subtensor.LiquidityPosition) for p in result])
-
-
-@pytest.mark.asyncio
 async def test_add_liquidity(subtensor, fake_wallet, mocker):
     """Test add_liquidity extrinsic calls properly."""
     # preps
@@ -3722,34 +3535,68 @@ async def test_get_subnet_price(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_get_subnet_prices(subtensor, mocker):
-    """Test get_subnet_prices returns the correct value."""
-    # preps
-    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-
-    async def fake_current_sqrt_prices():
-        yield [0, {"bits": 0}]
-        yield [1, {"bits": 3155343338053956962}]
-
-    expected_prices = {0: Balance.from_tao(1), 1: Balance.from_tao(0.029258617)}
-    mocked_query_map = mocker.patch.object(
-        subtensor.substrate, "query_map", return_value=fake_current_sqrt_prices()
+    """Test get_subnet_prices returns the correct value via runtime API."""
+    # Preps
+    fake_block_hash = "0xabc"
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "_runtime_method_exists", return_value=True)
+    fake_prices_rao = [
+        {"netuid": 0, "price": 1_000_000_000},
+        {"netuid": 1, "price": 29_258_617},
+    ]
+    expected_prices = {
+        0: Balance.from_rao(1_000_000_000),
+        1: Balance.from_rao(29_258_617),
+    }
+    mocked_runtime_call = mocker.patch.object(
+        subtensor.substrate, "runtime_call", return_value=fake_prices_rao
     )
 
     # Call
     result = await subtensor.get_subnet_prices()
 
     # Asserts
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
+    subtensor._runtime_method_exists.assert_awaited_once_with(
+        api="SwapRuntimeApi",
+        method="current_alpha_price_all",
+        block_hash=fake_block_hash,
     )
-    mocked_query_map.assert_awaited_once_with(
-        module="Swap",
-        storage_function="AlphaSqrtPrice",
-        block_hash=mocked_determine_block_hash.return_value,
-        page_size=129,  # total number of subnets
+    mocked_runtime_call.assert_awaited_once_with(
+        api="SwapRuntimeApi",
+        method="current_alpha_price_all",
+        block_hash=fake_block_hash,
+    )
+    assert result == expected_prices
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_prices_fallback(subtensor, mocker):
+    """Test get_subnet_prices falls back to per-subnet calls when runtime API is missing."""
+    # Preps
+    fake_block_hash = "0xabc"
+    mocker.patch.object(subtensor, "determine_block_hash", return_value=fake_block_hash)
+    mocker.patch.object(subtensor, "_runtime_method_exists", return_value=False)
+    mocker.patch.object(subtensor, "get_all_subnets_netuid", return_value=[0, 1, 2])
+    mocker.patch.object(
+        subtensor,
+        "get_subnet_price",
+        side_effect=[
+            Balance.from_tao(1),
+            Balance.from_rao(29_258_617),
+            Balance.from_rao(50_000_000),
+        ],
     )
 
-    assert result == expected_prices
+    # Call
+    result = await subtensor.get_subnet_prices()
+
+    # Asserts
+    assert result == {
+        0: Balance.from_tao(1),
+        1: Balance.from_rao(29_258_617),
+        2: Balance.from_rao(50_000_000),
+    }
+    assert subtensor.get_subnet_price.await_count == 3
 
 
 @pytest.mark.asyncio
@@ -4410,34 +4257,58 @@ async def test_set_auto_stake(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_determine_block_hash(subtensor, mocker):
-    """Tests that `determine_block_hash` calls proper methods and returns the correct value."""
+async def test_determine_block_hash(subtensor):
+    """Tests determine_block_hash precedence and validation rules."""
 
     async def fake_get_block_hash(block: int) -> str:
-        d = {
-            1: "0xfake1",
-            2: "0xfake2",
-        }
-        return d[block]
+        return {1: "0xfake1", 2: "0xfake2"}[block]
 
     subtensor.get_block_hash = fake_get_block_hash
+    subtensor.substrate.last_block_hash = "0xOTHER"
 
-    # Call
     mocked_hash = await subtensor.get_block_hash(block=1)
 
-    expected_hash_1 = await subtensor.determine_block_hash(block_hash=mocked_hash)
-    assert mocked_hash == expected_hash_1
+    # block_hash only
+    assert await subtensor.determine_block_hash(block_hash=mocked_hash) == mocked_hash
 
-    expected_hash_2 = await subtensor.determine_block_hash(
-        block=1, block_hash=mocked_hash
+    # block only
+    assert await subtensor.determine_block_hash(block=1) == mocked_hash
+
+    # block + block_hash agree
+    assert (
+        await subtensor.determine_block_hash(block=1, block_hash=mocked_hash)
+        == mocked_hash
     )
-    assert expected_hash_1 == expected_hash_2
 
-    with pytest.raises(ValueError):
+    # block_hash wins over reuse_block and last_block_hash (internal composition path)
+    assert (
+        await subtensor.determine_block_hash(block_hash=mocked_hash, reuse_block=True)
+        == mocked_hash
+    )
+
+    # block + block_hash + reuse_block: validate pair, ignore reuse_block
+    assert (
         await subtensor.determine_block_hash(
-            block_hash=mocked_hash, block=1, reuse_block=True
+            block=1, block_hash=mocked_hash, reuse_block=True
         )
+        == mocked_hash
+    )
 
+    # reuse_block only
+    assert await subtensor.determine_block_hash(reuse_block=True) == "0xOTHER"
+
+    # reuse_block with no cached block
+    subtensor.substrate.last_block_hash = None
+    assert await subtensor.determine_block_hash(reuse_block=True) is None
+
+    # chain tip
+    assert await subtensor.determine_block_hash() is None
+
+    # reuse_block + block: real conflict, no block_hash to disambiguate
+    with pytest.raises(ValueError, match="reuse_block and block"):
+        await subtensor.determine_block_hash(block=1, reuse_block=True)
+
+    # block + block_hash mismatch
     with pytest.raises(ValueError):
         await subtensor.determine_block_hash(block=2, block_hash=mocked_hash)
 
@@ -4885,6 +4756,104 @@ async def test_get_crowdloans(mocker, subtensor):
     assert result == [mocked_decode_crowdloan_entry.return_value]
 
 
+@pytest.mark.asyncio
+async def test_commit_weights_forwards_version_key(subtensor, fake_wallet, mocker):
+    """Regression: async commit_weights must forward the caller's version_key to the
+    extrinsic. If dropped, the commit hash is built with the default version_key and
+    a reveal made with the intended version_key mismatches on-chain."""
+    # Preps
+    netuid = 1
+    uids = [1, 2, 3, 4]
+    weights = [10, 20, 30, 40]
+    salt = [4, 2, 2, 1]
+    custom_version_key = settings.version_as_int + 1
+    mocked_extrinsic = mocker.AsyncMock(return_value=ExtrinsicResponse(True, None))
+    mocker.patch.object(async_subtensor, "commit_weights_extrinsic", mocked_extrinsic)
+
+    # Call
+    await subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=netuid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=custom_version_key,
+    )
+
+    # Assertions
+    assert mocked_extrinsic.await_count == 1
+    assert mocked_extrinsic.call_args.kwargs["version_key"] == custom_version_key
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "version_key",
+    [settings.version_as_int, settings.version_as_int + 7],
+    ids=["default_version_key", "custom_version_key"],
+)
+async def test_commit_weights_hash_matches_reveal(
+    subtensor, fake_wallet, mocker, version_key
+):
+    """Symptom-level (async): the commit hash built by AsyncSubtensor.commit_weights
+    (version_key=X) must equal the hash the chain recomputes at reveal for the same
+    inputs and X (reveal_weights forwards version_key). Pre-fix the async wrapper
+    dropped X and hashed with the default, so a custom X produced a mismatching commit
+    hash that a reveal would be rejected against. Drives the REAL async extrinsic
+    (commit_weights_extrinsic is NOT mocked) so it guards asyncex/weights.py's hashing."""
+    from bittensor.utils.weight_utils import generate_weight_hash as real_ghash
+
+    fake_wallet.hotkey.ss58_address = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    uids = [1, 2, 3]
+    weights = [10, 20, 30]
+    salt = [4, 2, 2, 1]
+
+    captured = {}
+
+    def spy(**kwargs):
+        result = real_ghash(**kwargs)
+        captured.update(kwargs)
+        captured["result"] = result
+        return result
+
+    mocker.patch(
+        "bittensor.core.extrinsics.asyncex.weights.generate_weight_hash",
+        side_effect=spy,
+    )
+    # Neutralize wallet unlock + chain submission so the extrinsic runs through hashing.
+    mocker.patch.object(
+        ExtrinsicResponse, "unlock_wallet", return_value=mocker.Mock(success=True)
+    )
+    mock_sm = mocker.patch("bittensor.core.extrinsics.asyncex.weights.SubtensorModule")
+    mock_sm.return_value.commit_mechanism_weights = mocker.AsyncMock()
+    mocker.patch.object(
+        subtensor,
+        "sign_and_send_extrinsic",
+        mocker.AsyncMock(return_value=ExtrinsicResponse(True, None)),
+    )
+
+    # Call (force the non-MEV path).
+    await subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=1,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_key=version_key,
+        mev_protection=False,
+    )
+
+    # Hash actually committed by commit_weights ...
+    commit_hash = captured["result"]
+    # ... vs the hash the chain recomputes at reveal for the same inputs + intended
+    # version_key (reusing the exact non-version_key args the commit path passed).
+    reveal_args = {
+        k: v for k, v in captured.items() if k not in ("version_key", "result")
+    }
+    reveal_hash = real_ghash(**reveal_args, version_key=version_key)
+
+    assert commit_hash == reveal_hash
+
+
 @pytest.mark.parametrize(
     "method, add_salt",
     [
@@ -5019,7 +4988,7 @@ async def test_get_root_claimable_all_rates(mocker, subtensor):
     # Preps
     hotkey_ss58 = mocker.Mock(spec=str)
     mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
-    fake_value = [(14, {"bits": 6520190})]
+    fake_value = {14: {"bits": 6520190}}
     fake_result = mocker.MagicMock(spec=ScaleType, value=fake_value)
     fake_result.__iter__ = fake_value
     mocked_query = mocker.patch.object(

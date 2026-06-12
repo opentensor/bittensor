@@ -13,7 +13,7 @@ from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall, ScaleValue
 from scalecodec.base import ScaleType
-from scalecodec.utils.math import FixedPoint, fixed_to_decimal
+from scalecodec.utils.math import FixedPoint
 
 from bittensor.core.chain_data import (
     ColdkeySwapAnnouncementInfo,
@@ -157,7 +157,6 @@ from bittensor.core.types import (
     SubtensorMixin,
     UIDs,
     Weights,
-    PositionResponse,
     NeuronCertificateResponse,
     CommitmentOfResponse,
     CrowdloansResponse,
@@ -165,7 +164,9 @@ from bittensor.core.types import (
 )
 from bittensor.utils import (
     Certificate,
+    ChainFeatureDisabledWarning,
     decode_hex_identity_dict,
+    deprecated_message,
     format_error_message,
     get_caller_name,
     get_mechid_storage_index,
@@ -180,13 +181,6 @@ from bittensor.utils.balance import (
     fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.liquidity import (
-    LiquidityPosition,
-    calculate_fees,
-    get_fees,
-    price_to_tick,
-    tick_to_price,
-)
 
 if TYPE_CHECKING:
     from async_substrate_interface import AsyncQueryMapResult
@@ -462,11 +456,12 @@ class AsyncSubtensor(SubtensorMixin):
         for blockchain queries.
 
         Parameter precedence (in order):
-            1. If `reuse_block=True` and `block` or `block_hash` is set → raises ValueError
-            2. If both `block` and `block_hash` are set → validates they match, raises ValueError if not
-            3. If only `block_hash` is set → returns it directly
-            4. If only `block` is set → fetches and returns its hash
-            5. If none are set → returns `None`
+            1. ``block`` + ``block_hash`` → validate they agree, return hash
+            2. ``block_hash`` only → return it (``reuse_block`` is ignored if also set)
+            3. ``block`` + ``reuse_block`` → raises ValueError
+            4. ``block`` only → fetch hash for the block number
+            5. ``reuse_block`` only → return ``substrate.last_block_hash`` (may be None)
+            6. none set → return None (chain tip)
 
         Parameters:
             block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block`
@@ -482,9 +477,8 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#block>
         """
-        if reuse_block and any([block, block_hash]):
-            raise ValueError("Cannot specify both reuse_block and block_hash/block")
-        if block and block_hash:
+        # 1. explicit pair: strongest signal, validate consistency
+        if block is not None and block_hash is not None:
             retrieved_block_hash = await self.get_block_hash(block)
             if retrieved_block_hash != block_hash:
                 raise ValueError(
@@ -492,16 +486,25 @@ class AsyncSubtensor(SubtensorMixin):
                     f"the one you supplied. You supplied `block_hash={block_hash}` for `block={block}`, but this block"
                     f"maps to the block hash {retrieved_block_hash}."
                 )
-            else:
-                return retrieved_block_hash
+            return retrieved_block_hash
 
-        # Return the appropriate value.
-        if block_hash:
+        # 2. explicit hash wins; reuse_block is redundant after parent resolution
+        if block_hash is not None:
             return block_hash
+
+        # 3. real ambiguity: block number vs reuse flag, no hash to disambiguate
+        if block is not None and reuse_block:
+            raise ValueError("Cannot specify both reuse_block and block")
+
+        # 4. explicit block number
         if block is not None:
             return await self.get_block_hash(block)
+
+        # 5. reuse last queried block
         if reuse_block:
             return self.substrate.last_block_hash
+
+        # 6. chain tip
         return None
 
     async def _runtime_method_exists(
@@ -2977,9 +2980,8 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[list[LiquidityPosition]]:
+    ) -> list:
         """Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
-        Calculates associated fee rewards based on current global and tick-level fee data.
 
         Parameters:
             wallet: Wallet instance to fetch positions for.
@@ -2989,173 +2991,17 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            List of liquidity positions, or None if subnet does not exist.
-
-        Notes:
-            - <https://docs.learnbittensor.org/liquidity-positions/
-            - <https://docs.learnbittensor.org/liquidity-positions/managing-liquidity-positions>
+            Always returns an empty list. User liquidity positions (Uniswap v3) have been permanently removed
+            from the chain and replaced by the Balancer swap mechanism.
         """
-        if not await self.subnet_exists(netuid=netuid):
-            logging.debug(f"Subnet {netuid} does not exist.")
-            return None
-
-        if not await self.is_subnet_active(netuid=netuid):
-            logging.debug(f"Subnet {netuid} is not active.")
-            return None
-
-        positions_response = await self.query_map(
-            module="Swap",
-            name="Positions",
-            params=[netuid, wallet.coldkeypub.ss58_address],
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
+        deprecated_message(
+            message="User liquidity positions have been permanently removed from the chain. "
+            "The Uniswap v3 swap mechanism has been replaced by the Balancer swap. "
+            "This method will always return an empty list.",
+            category=ChainFeatureDisabledWarning,
+            stacklevel=2,
         )
-        if len(positions_response.records) == 0:
-            return []
-
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-
-        # Fetch global fees and current price
-        fee_global_tao_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalTao",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        fee_global_alpha_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalAlpha",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        sqrt_price_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="AlphaSqrtPrice",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-
-        (
-            fee_global_tao_query,
-            fee_global_alpha_query,
-            sqrt_price_query,
-        ) = await self.substrate.query_multi(
-            storage_keys=[
-                fee_global_tao_query_sk,
-                fee_global_alpha_query_sk,
-                sqrt_price_query_sk,
-            ],
-            block_hash=block_hash,
-        )
-
-        # convert to floats
-        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
-        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
-        sqrt_price = fixed_to_float(sqrt_price_query[1])
-
-        # Fetch global fees and current price
-        current_tick = price_to_tick(sqrt_price**2)
-
-        # Fetch positions
-        positions_values: list[tuple[PositionResponse, int, int]] = []
-        positions_storage_keys: list[StorageKey] = []
-        position: PositionResponse
-        async for _, position in positions_response:
-            tick_low_idx = position.get("tick_low")
-            tick_high_idx = position.get("tick_high")
-            positions_values.append((position, tick_low_idx, tick_high_idx))
-            tick_low_sk = await self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_low_idx],
-                block_hash=block_hash,
-            )
-            tick_high_sk = await self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_high_idx],
-                block_hash=block_hash,
-            )
-            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
-
-        # query all our ticks at once
-        ticks_query = await self.substrate.query_multi(
-            positions_storage_keys, block_hash=block_hash
-        )
-        # iterator with just the values
-        ticks = iter([x[1] for x in ticks_query])
-        positions: list[LiquidityPosition] = []
-        for position, tick_low_idx, tick_high_idx in positions_values:
-            tick_low = next(ticks)
-            tick_high = next(ticks)
-            # Calculate fees above/below range for both tokens
-            tao_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            tao_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
-            alpha_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            alpha_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
-
-            # Calculate fees earned by position
-            fees_tao, fees_alpha = calculate_fees(
-                position=position,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                tao_fees_below_low=tao_below,
-                tao_fees_above_high=tao_above,
-                alpha_fees_below_low=alpha_below,
-                alpha_fees_above_high=alpha_above,
-                netuid=netuid,
-            )
-
-            positions.append(
-                LiquidityPosition(
-                    id=position.get("id"),
-                    price_low=Balance.from_tao(tick_to_price(position.get("tick_low"))),
-                    price_high=Balance.from_tao(
-                        tick_to_price(position.get("tick_high"))
-                    ),
-                    liquidity=Balance.from_rao(position.get("liquidity")),
-                    fees_tao=fees_tao,
-                    fees_alpha=fees_alpha,
-                    netuid=position.get("netuid"),
-                )
-            )
-
-        return positions
+        return []
 
     async def get_mechanism_emission_split(
         self,
@@ -4126,14 +3972,15 @@ class AsyncSubtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        query: ScaleType[list[tuple[int, FixedPoint]]] = await self.substrate.query(
+        query: ScaleType[dict[int, FixedPoint]] = await self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimable",
             params=[hotkey_ss58],
             block_hash=block_hash,
         )
         return {
-            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value
+            netuid: fixed_to_float(bits, frac_bits=32)
+            for (netuid, bits) in query.value.items()
         }
 
     async def get_root_claimable_stake(
@@ -4846,23 +4693,37 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
+        if block_hash is None:
+            block_hash = await self.substrate.get_chain_head()
 
-        current_sqrt_prices = await self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
+        if await self._runtime_method_exists(
+            api="SwapRuntimeApi",
+            method="current_alpha_price_all",
             block_hash=block_hash,
-            page_size=129,  # total number of subnets
+        ):
+            prices_rao = cast(
+                list[dict],
+                await self.substrate.runtime_call(
+                    api="SwapRuntimeApi",
+                    method="current_alpha_price_all",
+                    block_hash=block_hash,
+                ),
+            )
+            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
+
+        netuids = await self.get_all_subnets_netuid(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
         )
-
-        prices = {}
-        async for id_, current_sqrt_price_bits in current_sqrt_prices:
-            current_sqrt_price = fixed_to_decimal(current_sqrt_price_bits)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_tao(float(current_price))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
+        prices_list = await asyncio.gather(
+            *[
+                self.get_subnet_price(
+                    netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+                )
+                for netuid in netuids
+            ]
+        )
+        prices = dict(zip(netuids, prices_list))
+        prices[0] = Balance.from_tao(1)
         return prices
 
     async def get_subnet_reveal_period_epochs(
@@ -7041,6 +6902,7 @@ class AsyncSubtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
+                    version_key=version_key,
                     mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
@@ -7490,9 +7352,8 @@ class AsyncSubtensor(SubtensorMixin):
         method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
-            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
-                with the pure proxy.
+            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address can either be the spawner or an account
+                with an "Any" proxy relationship to the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
                 returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
