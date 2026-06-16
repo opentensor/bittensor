@@ -4220,6 +4220,52 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return sim_swap_result.tao_fee
 
+    async def get_stake_availability_for_coldkeys(
+        self,
+        coldkey_ss58s: list[str],
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict:
+        """
+        Batch query of stake availability per coldkey and subnet.
+
+        Returns how much alpha each coldkey has staked on each subnet, how much is locked by conviction, and how much
+        is free to unstake right now. All values are in rao (raw integer units).
+
+        Parameters:
+            coldkey_ss58s: SS58 addresses of the coldkeys to query.
+            netuids: Subnet UIDs to limit the scan to. ``None`` scans all subnets.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            A nested dict ``{coldkey_ss58: {netuid: {total, locked, available}}}``.
+            Each inner dict contains:
+
+            - ``total`` - all alpha staked on the subnet across all hotkeys (rao).
+            - ``locked`` - current locked mass after decay (rao).
+            - ``available`` - alpha that can be unstaked now, i.e. ``total - locked`` (rao).
+
+            Subnets with zero stake and zero lock are omitted.
+            Coldkeys from the request are always present (inner dict may be empty).
+
+        Example::
+
+            result = await subtensor.get_stake_availability_for_coldkeys(["5HGj..."])
+            available_rao = result["5HGj..."][2]["available"]
+        """
+        return await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_availability_for_coldkeys",
+            params=[coldkey_ss58s, netuids],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+
     async def get_stake_lock(
         self,
         coldkey_ss58: str,
