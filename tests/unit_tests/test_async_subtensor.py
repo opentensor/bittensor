@@ -3702,6 +3702,59 @@ async def test_get_stake_add_fee(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_stake_availability_for_coldkeys(subtensor, mocker):
+    """Tests get_stake_availability_for_coldkeys returns raw dict from runtime API."""
+    # Preps
+    fake_coldkeys = ["ck1", "ck2"]
+    fake_result = {
+        "ck1": {
+            2: {"total": 1_500_000_000, "locked": 0, "available": 1_500_000_000},
+            3: {"total": 800_000_000, "locked": 200_000_000, "available": 600_000_000},
+        },
+        "ck2": {},
+    }
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=fake_result)
+
+    # Call
+    result = await subtensor.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=fake_coldkeys, netuids=[2, 3], block=100
+    )
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_availability_for_coldkeys",
+        params=[fake_coldkeys, [2, 3]],
+        block=100,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result == fake_result
+
+
+@pytest.mark.asyncio
+async def test_get_stake_availability_for_coldkeys_netuids_none(subtensor, mocker):
+    """Tests get_stake_availability_for_coldkeys passes None netuids correctly."""
+    # Preps
+    fake_result = {"ck1": {1: {"total": 100, "locked": 0, "available": 100}}}
+    subtensor.query_runtime_api = mocker.AsyncMock(return_value=fake_result)
+
+    # Call
+    result = await subtensor.get_stake_availability_for_coldkeys(coldkey_ss58s=["ck1"])
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_availability_for_coldkeys",
+        params=[["ck1"], None],
+        block=None,
+        block_hash=None,
+        reuse_block=False,
+    )
+    assert result == fake_result
+
+
+@pytest.mark.asyncio
 async def test_get_unstake_fee(subtensor, mocker):
     """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
     # Preps
