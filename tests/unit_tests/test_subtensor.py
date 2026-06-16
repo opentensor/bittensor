@@ -5484,6 +5484,51 @@ def test_get_proxy_constants_as_dict(subtensor, mocker):
     assert result == fake_constants
 
 
+def test_get_proxy_filter(subtensor, mocker):
+    """Test get_proxy_filter calls runtime API correctly."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_runtime_call = mocker.patch.object(subtensor.substrate, "runtime_call")
+    mocked_from_list = mocker.patch.object(
+        subtensor_module.ProxyFilterInfo, "from_list"
+    )
+
+    # Call
+    result = subtensor.get_proxy_filter()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_runtime_call.assert_called_once_with(
+        api="ProxyFilterRuntimeApi",
+        method="get_proxy_filter",
+        params=[None],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_list.assert_called_once_with(mocked_runtime_call.return_value)
+    assert result == mocked_from_list.return_value
+
+
+def test_get_proxy_types(subtensor, mocker):
+    """Test get_proxy_types calls runtime API correctly."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_runtime_call = mocker.patch.object(subtensor.substrate, "runtime_call")
+    mocked_from_list = mocker.patch.object(subtensor_module.ProxyTypeInfo, "from_list")
+
+    # Call
+    result = subtensor.get_proxy_types()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_runtime_call.assert_called_once_with(
+        api="ProxyFilterRuntimeApi",
+        method="get_proxy_types",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_list.assert_called_once_with(mocked_runtime_call.return_value)
+    assert result == mocked_from_list.return_value
+
+
 def test_add_proxy(mocker, subtensor):
     """Tests `add_proxy` extrinsic call method."""
     # preps
