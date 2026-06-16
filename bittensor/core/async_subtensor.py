@@ -29,8 +29,10 @@ from bittensor.core.chain_data import (
     ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyConstants,
+    ProxyFilterInfo,
     ProxyInfo,
     ProxyType,
+    ProxyTypeInfo,
     RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
@@ -3754,6 +3756,75 @@ class AsyncSubtensor(SubtensorMixin):
         proxy_constants = ProxyConstants.from_dict(result)
 
         return proxy_constants.to_dict() if as_dict else proxy_constants
+
+    async def get_proxy_filter(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[ProxyFilterInfo]:
+        """Retrieves proxy filter rules from the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyFilter`` runtime API to get detailed information about which
+        extrinsics are allowed or denied for each proxy type. This is the authoritative source of truth for proxy
+        permissions.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+            block_hash: The hash of the block at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+
+        Returns:
+            List of ProxyFilterInfo objects describing the filter rules for all proxy types.
+
+        Notes:
+            - Filter modes:
+                - ``"AllowAll"``: All calls are permitted (e.g., ``ProxyType.Any``).
+                - ``"DenyAll"``: No calls are permitted (e.g., deprecated types).
+                - ``"Allow"``: Only calls listed in ``calls`` are permitted (minus ``exceptions``).
+                - ``"Deny"``: All calls are permitted EXCEPT those listed in ``calls``.
+            - A call entry with ``call_name=None`` means the rule applies to ALL calls in that pallet.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.runtime_call(
+            api="ProxyFilterRuntimeApi",
+            method="get_proxy_filter",
+            params=[None],
+            block_hash=block_hash,
+        )
+        return ProxyFilterInfo.from_list(result)
+
+    async def get_proxy_types(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[ProxyTypeInfo]:
+        """Retrieves all proxy type variants defined in the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyTypes`` runtime API to get the complete list of proxy types with
+        their indices and deprecation status. This is the authoritative source of truth for which proxy types exist in
+        the current runtime.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+            block_hash: The hash of the block at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+
+        Returns:
+            List of ProxyTypeInfo objects representing all proxy type variants in the runtime.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.runtime_call(
+            api="ProxyFilterRuntimeApi",
+            method="get_proxy_types",
+            block_hash=block_hash,
+        )
+        return ProxyTypeInfo.from_list(result)
 
     async def get_revealed_commitment(
         self,
