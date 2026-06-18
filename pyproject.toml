@@ -29,8 +29,7 @@ dependencies = [
     "pydantic>=2.3,<3",
     "cyscale==0.5.0",
     "uvicorn",
-#    "bittensor-drand>=2.0.0,<3.0.0",
-    "bittensor-drand @ git+https://github.com/latent-to/bittensor-drand.git@feat/basfroman/dynamic-tempo-support", ### temporarelly
+    "bittensor-drand>=2.0.0,<3.0.0",
     "bittensor-wallet>=4.1.0",
     "async-substrate-interface>=2.0.4,<3.0.0",
 ]
