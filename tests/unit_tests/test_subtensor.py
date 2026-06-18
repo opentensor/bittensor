@@ -4098,6 +4098,53 @@ def test_get_stake_add_fee(subtensor, mocker):
     assert result == mocked_sim_swap.return_value.tao_fee
 
 
+def test_get_stake_availability_for_coldkeys(subtensor, mocker):
+    """Tests get_stake_availability_for_coldkeys returns raw dict from runtime API."""
+    # Preps
+    fake_coldkeys = ["ck1", "ck2"]
+    fake_result = {
+        "ck1": {
+            2: {"total": 1_500_000_000, "locked": 0, "available": 1_500_000_000},
+            3: {"total": 800_000_000, "locked": 200_000_000, "available": 600_000_000},
+        },
+        "ck2": {},
+    }
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=fake_result)
+
+    # Call
+    result = subtensor.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=fake_coldkeys, netuids=[2, 3], block=100
+    )
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_availability_for_coldkeys",
+        params=[fake_coldkeys, [2, 3]],
+        block=100,
+    )
+    assert result == fake_result
+
+
+def test_get_stake_availability_for_coldkeys_netuids_none(subtensor, mocker):
+    """Tests get_stake_availability_for_coldkeys passes None netuids correctly."""
+    # Preps
+    fake_result = {"ck1": {1: {"total": 100, "locked": 0, "available": 100}}}
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=fake_result)
+
+    # Call
+    result = subtensor.get_stake_availability_for_coldkeys(coldkey_ss58s=["ck1"])
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_availability_for_coldkeys",
+        params=[["ck1"], None],
+        block=None,
+    )
+    assert result == fake_result
+
+
 def test_get_unstake_fee(subtensor, mocker):
     """Verify that `get_unstake_fee` calls proper methods and returns the correct value."""
     # Preps
@@ -5575,6 +5622,51 @@ def test_get_proxy_constants_as_dict(subtensor, mocker):
     mocked_from_dict.assert_called_once_with(fake_constants)
     mocked_to_dict.assert_called_once()
     assert result == fake_constants
+
+
+def test_get_proxy_filter(subtensor, mocker):
+    """Test get_proxy_filter calls runtime API correctly."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_runtime_call = mocker.patch.object(subtensor.substrate, "runtime_call")
+    mocked_from_list = mocker.patch.object(
+        subtensor_module.ProxyFilterInfo, "from_list"
+    )
+
+    # Call
+    result = subtensor.get_proxy_filter()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_runtime_call.assert_called_once_with(
+        api="ProxyFilterRuntimeApi",
+        method="get_proxy_filter",
+        params=[None],
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_list.assert_called_once_with(mocked_runtime_call.return_value)
+    assert result == mocked_from_list.return_value
+
+
+def test_get_proxy_types(subtensor, mocker):
+    """Test get_proxy_types calls runtime API correctly."""
+    # Prep
+    mocked_determine_block_hash = mocker.patch.object(subtensor, "determine_block_hash")
+    mocked_runtime_call = mocker.patch.object(subtensor.substrate, "runtime_call")
+    mocked_from_list = mocker.patch.object(subtensor_module.ProxyTypeInfo, "from_list")
+
+    # Call
+    result = subtensor.get_proxy_types()
+
+    # Asserts
+    mocked_determine_block_hash.assert_called_once_with(None)
+    mocked_runtime_call.assert_called_once_with(
+        api="ProxyFilterRuntimeApi",
+        method="get_proxy_types",
+        block_hash=mocked_determine_block_hash.return_value,
+    )
+    mocked_from_list.assert_called_once_with(mocked_runtime_call.return_value)
+    assert result == mocked_from_list.return_value
 
 
 def test_add_proxy(mocker, subtensor):

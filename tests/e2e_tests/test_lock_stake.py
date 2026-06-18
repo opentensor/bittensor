@@ -346,6 +346,40 @@ def test_non_owner_lock_lifecycle(subtensor, alice_wallet, bob_wallet, charlie_w
     assert lock_info["conviction"] < 1.0
     assert lock_info["last_update"] > 0
 
+    # Verify stake availability batch query: Bob has stake+lock, Alice (subnet owner) has no lock
+    availability = subtensor.staking.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=[
+            bob_wallet.coldkey.ss58_address,
+            alice_wallet.coldkey.ss58_address,
+        ],
+        netuids=[alice_sn.netuid],
+    )
+    logging.console.info(f"Stake availability: {availability}")
+    bob_avail = availability[bob_wallet.coldkey.ss58_address]
+    assert alice_sn.netuid in bob_avail
+    bob_subnet = bob_avail[alice_sn.netuid]
+    assert bob_subnet["total"] > 0
+    assert bob_subnet["locked"] <= lock_info["locked_mass"].rao
+    assert bob_subnet["locked"] > lock_info["locked_mass"].rao * 0.99
+    assert bob_subnet["available"] == bob_subnet["total"] - bob_subnet["locked"]
+    # Alice (subnet owner) has stake but no lock — locked should be 0, available == total
+    alice_subnet = availability[alice_wallet.coldkey.ss58_address][alice_sn.netuid]
+    assert alice_subnet["locked"] == 0
+    assert alice_subnet["available"] == alice_subnet["total"]
+
+    # netuids=None should also include Bob's subnet
+    availability_all = subtensor.staking.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=[bob_wallet.coldkey.ss58_address],
+    )
+    assert alice_sn.netuid in availability_all[bob_wallet.coldkey.ss58_address]
+
+    # Non-existent netuid should yield empty inner dicts
+    availability_empty = subtensor.staking.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=[bob_wallet.coldkey.ss58_address],
+        netuids=[999],
+    )
+    assert availability_empty[bob_wallet.coldkey.ss58_address] == {}
+
     # Hotkey conviction should be near zero for a fresh non-owner lock
     conviction = subtensor.staking.get_hotkey_conviction(
         hotkey_ss58=bob_wallet.hotkey.ss58_address,
@@ -490,6 +524,44 @@ async def test_non_owner_lock_lifecycle_async(
     assert lock_info["locked_mass"].rao == first_lock.rao
     assert lock_info["conviction"] < 1.0
     assert lock_info["last_update"] > 0
+
+    # Verify stake availability batch query: Bob has stake+lock, Alice (subnet owner) has no lock
+    availability = await async_subtensor.staking.get_stake_availability_for_coldkeys(
+        coldkey_ss58s=[
+            bob_wallet.coldkey.ss58_address,
+            alice_wallet.coldkey.ss58_address,
+        ],
+        netuids=[alice_sn.netuid],
+    )
+    logging.console.info(f"Stake availability: {availability}")
+    bob_avail = availability[bob_wallet.coldkey.ss58_address]
+    assert alice_sn.netuid in bob_avail
+    bob_subnet = bob_avail[alice_sn.netuid]
+    assert bob_subnet["total"] > 0
+    assert bob_subnet["locked"] <= lock_info["locked_mass"].rao
+    assert bob_subnet["locked"] > lock_info["locked_mass"].rao * 0.99
+    assert bob_subnet["available"] == bob_subnet["total"] - bob_subnet["locked"]
+    # Alice (subnet owner) has stake but no lock — locked should be 0, available == total
+    alice_subnet = availability[alice_wallet.coldkey.ss58_address][alice_sn.netuid]
+    assert alice_subnet["locked"] == 0
+    assert alice_subnet["available"] == alice_subnet["total"]
+
+    # netuids=None should also include Bob's subnet
+    availability_all = (
+        await async_subtensor.staking.get_stake_availability_for_coldkeys(
+            coldkey_ss58s=[bob_wallet.coldkey.ss58_address],
+        )
+    )
+    assert alice_sn.netuid in availability_all[bob_wallet.coldkey.ss58_address]
+
+    # Non-existent netuid should yield empty inner dicts
+    availability_empty = (
+        await async_subtensor.staking.get_stake_availability_for_coldkeys(
+            coldkey_ss58s=[bob_wallet.coldkey.ss58_address],
+            netuids=[999],
+        )
+    )
+    assert availability_empty[bob_wallet.coldkey.ss58_address] == {}
 
     # Hotkey conviction should be near zero for a fresh non-owner lock
     conviction = await async_subtensor.staking.get_hotkey_conviction(
