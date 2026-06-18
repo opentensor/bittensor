@@ -362,7 +362,7 @@ def test_commit_reveal_after_owner_set_tempo(subtensor, alice_wallet):
         f"Current block: {current_block}, next epoch: {upcoming_tempo}"
     )
 
-    expected_commit_block = subtensor.block + 1
+    expected_commit_block = subtensor.block + 2
     response = subtensor.extrinsics.set_weights(
         wallet=alice_wallet,
         netuid=netuid,
@@ -388,9 +388,9 @@ def test_commit_reveal_after_owner_set_tempo(subtensor, alice_wallet):
     assert expected_reveal_round == reveal_round
     assert address == alice_wallet.hotkey.ss58_address
     assert expected_commit_block in [
-        commit_block - 1,
+        commit_block - 2,
         commit_block,
-        commit_block + 1,
+        commit_block + 2,
     ]
     assert subtensor.subnets.weights(netuid=netuid, mechid=0) == []
 
@@ -473,7 +473,7 @@ async def test_commit_reveal_after_owner_set_tempo_async(async_subtensor, alice_
         f"Current block: {current_block}, next epoch: {upcoming_tempo}"
     )
 
-    expected_commit_block = await async_subtensor.block + 1
+    expected_commit_block = await async_subtensor.block + 2
     response = await async_subtensor.extrinsics.set_weights(
         wallet=alice_wallet,
         netuid=netuid,
@@ -499,9 +499,9 @@ async def test_commit_reveal_after_owner_set_tempo_async(async_subtensor, alice_
     assert expected_reveal_round == reveal_round
     assert address == alice_wallet.hotkey.ss58_address
     assert expected_commit_block in [
-        commit_block - 1,
+        commit_block - 2,
         commit_block,
-        commit_block + 1,
+        commit_block + 2,
     ]
     assert await async_subtensor.subnets.weights(netuid=netuid, mechid=0) == []
 
