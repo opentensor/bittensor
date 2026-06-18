@@ -11,7 +11,7 @@ For developers:
 
 Note:
     Any manual changes will be overwritten the next time the generator is run.
-    Subtensor spec version: 408
+    Subtensor spec version: 417
 """
 
 from collections import namedtuple
@@ -196,6 +196,10 @@ SUDO_SET_NOMINATOR_MIN_REQUIRED_STAKE = namedtuple(
 SUDO_SET_NUM_ROOT_CLAIMS = namedtuple(
     "SUDO_SET_NUM_ROOT_CLAIMS", ["wallet", "pallet", "sudo", "new_value"]
 )  # args: [new_value: u64]  | Pallet: SubtensorModule
+SUDO_SET_OWNER_CUT_AUTO_LOCK_ENABLED = namedtuple(
+    "SUDO_SET_OWNER_CUT_AUTO_LOCK_ENABLED",
+    ["wallet", "pallet", "sudo", "netuid", "enabled"],
+)  # args: [netuid: NetUid, enabled: bool]  | Pallet: AdminUtils
 SUDO_SET_OWNER_CUT_ENABLED = namedtuple(
     "SUDO_SET_OWNER_CUT_ENABLED", ["wallet", "pallet", "sudo", "netuid", "enabled"]
 )  # args: [netuid: NetUid, enabled: bool]  | Pallet: AdminUtils

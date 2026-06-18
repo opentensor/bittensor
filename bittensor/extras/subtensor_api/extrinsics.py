@@ -46,6 +46,10 @@ class Extrinsics:
         self.set_reveal_commitment = subtensor.set_reveal_commitment
         self.set_root_claim_type = subtensor.set_root_claim_type
         self.set_subnet_identity = subtensor.set_subnet_identity
+        self.set_tempo = subtensor.set_tempo
+        self.set_activity_cutoff_factor = subtensor.set_activity_cutoff_factor
+        self.root_set_activity_cutoff_factor = subtensor.root_set_activity_cutoff_factor
+        self.trigger_epoch = subtensor.trigger_epoch
         self.set_weights = subtensor.set_weights
         self.start_call = subtensor.start_call
         self.swap_coldkey_announced = subtensor.swap_coldkey_announced

@@ -22,12 +22,13 @@ def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
     mocked_get_subnet_hyperparameters = mocker.patch.object(
         subtensor, "get_subnet_hyperparameters"
     )
-    mocked_get_sub_subnet_storage_index = mocker.patch.object(
-        weights_module, "get_mechid_storage_index"
+    fake_schedule = mocker.Mock()
+    mocker.patch.object(
+        subtensor, "get_epoch_schedule_state", return_value=fake_schedule
     )
-    mocked_get_encrypted_commit = mocker.patch.object(
+    mocked_get_encrypted_commit_v2 = mocker.patch.object(
         weights_module,
-        "get_encrypted_commit",
+        "get_encrypted_commit_v2",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
     mocked_compose_call = mocker.patch.object(subtensor, "compose_call")
@@ -36,7 +37,7 @@ def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
         "sign_and_send_extrinsic",
         return_value=ExtrinsicResponse(
             True,
-            f"reveal_round:{mocked_get_encrypted_commit.return_value[1]}",
+            f"reveal_round:{mocked_get_encrypted_commit_v2.return_value[1]}",
         ),
     )
 
@@ -53,17 +54,17 @@ def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
 
     # Asserts
     mocked_convert_and_normalize_weights_and_uids.assert_called_once_with(uids, weights)
-    mocked_get_sub_subnet_storage_index.assert_called_once_with(
-        netuid=netuid, mechid=mechid
-    )
-    mocked_get_encrypted_commit.assert_called_once_with(
-        uids=uids,
-        weights=weights,
-        subnet_reveal_period_epochs=mocked_get_subnet_hyperparameters.return_value.commit_reveal_period,
+    mocked_get_encrypted_commit_v2.assert_called_once_with(
+        uids=list(uids),
+        weights=list(weights),
         version_key=weights_module.version_as_int,
-        tempo=mocked_get_subnet_hyperparameters.return_value.tempo,
-        netuid=mocked_get_sub_subnet_storage_index.return_value,
-        current_block=mocked_get_current_block.return_value,
+        last_epoch_block=fake_schedule.last_epoch_block,
+        pending_epoch_at=fake_schedule.pending_epoch_at,
+        subnet_epoch_index=fake_schedule.subnet_epoch_index,
+        tempo=fake_schedule.tempo,
+        blocks_since_last_step=fake_schedule.blocks_since_last_step,
+        current_block=fake_schedule.current_block,
+        subnet_reveal_period_epochs=mocked_get_subnet_hyperparameters.return_value.commit_reveal_period,
         block_time=block_time,
         hotkey=fake_wallet.hotkey.public_key,
     )
@@ -73,8 +74,8 @@ def test_commit_timelocked_weights_extrinsic(mocker, subtensor, fake_wallet):
         call_params={
             "netuid": netuid,
             "mecid": mechid,
-            "commit": mocked_get_encrypted_commit.return_value[0],
-            "reveal_round": mocked_get_encrypted_commit.return_value[1],
+            "commit": mocked_get_encrypted_commit_v2.return_value[0],
+            "reveal_round": mocked_get_encrypted_commit_v2.return_value[1],
             "commit_reveal_version": 4,
         },
     )
