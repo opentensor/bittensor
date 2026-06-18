@@ -2,7 +2,7 @@
 
 from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor_drand import get_encrypted_commit
+from bittensor_drand import get_encrypted_commit_v2
 
 from bittensor.core.extrinsics.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.pallets import SubtensorModule
@@ -82,19 +82,19 @@ def commit_timelocked_weights_extrinsic(
         subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
             netuid, block=current_block
         )
-        tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
-        storage_index = get_mechid_storage_index(netuid=netuid, mechid=mechid)
-
-        # Encrypt `commit_hash` with t-lock and `get reveal_round`
-        commit_for_reveal, reveal_round = get_encrypted_commit(
-            uids=uids,
-            weights=weights,
+        schedule = subtensor.get_epoch_schedule_state(netuid, block=current_block)
+        commit_for_reveal, reveal_round = get_encrypted_commit_v2(
+            uids=list(uids),
+            weights=list(weights),
             version_key=version_key,
-            tempo=tempo,
-            current_block=current_block,
-            netuid=storage_index,
+            last_epoch_block=schedule.last_epoch_block,
+            pending_epoch_at=schedule.pending_epoch_at,
+            subnet_epoch_index=schedule.subnet_epoch_index,
+            tempo=schedule.tempo,
+            blocks_since_last_step=schedule.blocks_since_last_step,
+            current_block=schedule.current_block,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
             block_time=block_time,
             hotkey=wallet.hotkey.public_key,

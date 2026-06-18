@@ -13,7 +13,17 @@ class Chain:
         self.get_current_block = subtensor.get_current_block
         self.get_delegate_identities = subtensor.get_delegate_identities
         self.get_existential_deposit = subtensor.get_existential_deposit
+        self.get_max_activity_cutoff_factor_milli = (
+            subtensor.get_max_activity_cutoff_factor_milli
+        )
+        self.get_max_epochs_per_block = subtensor.get_max_epochs_per_block
+        self.get_max_tempo = subtensor.get_max_tempo
+        self.get_min_activity_cutoff_factor_milli = (
+            subtensor.get_min_activity_cutoff_factor_milli
+        )
+        self.get_min_tempo = subtensor.get_min_tempo
         self.get_minimum_required_stake = subtensor.get_minimum_required_stake
+        self.get_owner_hyperparam_rate_limit = subtensor.get_owner_hyperparam_rate_limit
         self.get_start_call_delay = subtensor.get_start_call_delay
         self.get_timestamp = subtensor.get_timestamp
         self.get_vote_data = subtensor.get_vote_data

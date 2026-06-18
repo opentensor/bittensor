@@ -16,6 +16,10 @@ class Subnets:
         self.burned_register = subtensor.burned_register
         self.commit_reveal_enabled = subtensor.commit_reveal_enabled
         self.difficulty = subtensor.difficulty
+        self.get_activity_cutoff_factor_milli = (
+            subtensor.get_activity_cutoff_factor_milli
+        )
+        self.get_epoch_schedule_state = subtensor.get_epoch_schedule_state
         self.get_all_ema_tao_inflow = subtensor.get_all_ema_tao_inflow
         self.get_all_subnets_info = subtensor.get_all_subnets_info
         self.get_all_subnets_netuid = subtensor.get_all_subnets_netuid
@@ -28,7 +32,10 @@ class Subnets:
         self.get_neuron_for_pubkey_and_subnet = (
             subtensor.get_neuron_for_pubkey_and_subnet
         )
+        self.get_last_epoch_block = subtensor.get_last_epoch_block
         self.get_next_epoch_start_block = subtensor.get_next_epoch_start_block
+        self.get_pending_epoch_at = subtensor.get_pending_epoch_at
+        self.get_subnet_epoch_index = subtensor.get_subnet_epoch_index
         self.get_mechanism_emission_split = subtensor.get_mechanism_emission_split
         self.get_mechanism_count = subtensor.get_mechanism_count
         self.get_subnet_burn_cost = subtensor.get_subnet_burn_cost

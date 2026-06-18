@@ -614,6 +614,12 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
 
     metagraph_info = subtensor.metagraphs.get_metagraph_info(netuid=1, block=1)
 
+    expected_activity_cutoff = max(
+        1,
+        subtensor.subnets.get_activity_cutoff_factor_milli(1)
+        * 100  # tempo
+        // 1000,
+    )
     expected_metagraph_info = MetagraphInfo(
         netuid=1,
         mechid=0,
@@ -644,7 +650,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
         max_weights_limit=1.0,
         weights_version=0,
         weights_rate_limit=100,
-        activity_cutoff=5000,
+        activity_cutoff=expected_activity_cutoff,
         max_validators=64,
         num_uids=1,
         max_uids=256,
@@ -711,6 +717,12 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
 
     metagraph_infos = subtensor.metagraphs.get_all_metagraphs_info(block=1)
 
+    root_activity_cutoff = max(
+        1,
+        subtensor.subnets.get_activity_cutoff_factor_milli(0)
+        * 100  # tempo
+        // 1000,
+    )
     expected_metagraph_infos = [
         MetagraphInfo(
             netuid=0,
@@ -742,7 +754,7 @@ def test_metagraph_info(subtensor, alice_wallet, bob_wallet):
             max_weights_limit=1.0,
             weights_version=0,
             weights_rate_limit=100,
-            activity_cutoff=5000,
+            activity_cutoff=root_activity_cutoff,
             max_validators=64,
             num_uids=0,
             max_uids=64,
@@ -865,6 +877,12 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
         netuid=1, block=1
     )
 
+    expected_activity_cutoff = max(
+        1,
+        await async_subtensor.subnets.get_activity_cutoff_factor_milli(1)
+        * 100  # tempo
+        // 1000,
+    )
     expected_metagraph_info = MetagraphInfo(
         netuid=1,
         mechid=0,
@@ -895,7 +913,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
         max_weights_limit=1.0,
         weights_version=0,
         weights_rate_limit=100,
-        activity_cutoff=5000,
+        activity_cutoff=expected_activity_cutoff,
         max_validators=64,
         num_uids=1,
         max_uids=256,
@@ -962,6 +980,12 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
 
     metagraph_infos = await async_subtensor.metagraphs.get_all_metagraphs_info(block=1)
 
+    root_activity_cutoff = max(
+        1,
+        await async_subtensor.subnets.get_activity_cutoff_factor_milli(0)
+        * 100  # tempo
+        // 1000,
+    )
     expected_metagraph_infos = [
         MetagraphInfo(
             netuid=0,
@@ -993,7 +1017,7 @@ async def test_metagraph_info_async(async_subtensor, alice_wallet, bob_wallet):
             max_weights_limit=1.0,
             weights_version=0,
             weights_rate_limit=100,
-            activity_cutoff=5000,
+            activity_cutoff=root_activity_cutoff,
             max_validators=64,
             num_uids=0,
             max_uids=64,
