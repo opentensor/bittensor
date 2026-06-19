@@ -804,21 +804,13 @@ async def test_default_verify_valid_signature_passes():
 
 
 @pytest.mark.asyncio
-async def test_default_verify_empty_signature_raises():
-    # Regression: an empty signature must NOT skip verification. Previously the
-    # check was `if signature and not verify(...)`, so an empty signature
+@pytest.mark.parametrize("empty_sig", ["", None])
+async def test_default_verify_missing_signature_raises(empty_sig):
+    # Regression: a falsy signature must NOT skip verification. Previously the
+    # check was `if signature and not verify(...)`, so an empty/None signature
     # short-circuited and the request was accepted, allowing hotkey spoofing.
     axon, synapse, _ = _make_default_verify_inputs()
-    synapse.dendrite.signature = ""
-
-    with pytest.raises(Exception, match="Missing Signature"):
-        await axon.default_verify(synapse)
-
-
-@pytest.mark.asyncio
-async def test_default_verify_missing_signature_raises():
-    axon, synapse, _ = _make_default_verify_inputs()
-    synapse.dendrite.signature = None
+    synapse.dendrite.signature = empty_sig
 
     with pytest.raises(Exception, match="Missing Signature"):
         await axon.default_verify(synapse)
