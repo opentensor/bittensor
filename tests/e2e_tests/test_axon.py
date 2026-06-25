@@ -1,6 +1,7 @@
 import asyncio
 import time
 
+import netaddr
 import pytest
 
 from bittensor.utils import networking
@@ -52,7 +53,6 @@ def test_axon(subtensor, templates, alice_wallet):
         # Refresh the metagraph
         metagraph = subtensor.metagraphs.metagraph(alice_sn.netuid)
         updated_axon = metagraph.axons[0]
-        external_ip = networking.get_external_ip()
 
     # Assert updated attributes
     assert len(metagraph.axons) == 1, (
@@ -63,13 +63,9 @@ def test_axon(subtensor, templates, alice_wallet):
         f"Expected 1 neuron, but got {len(metagraph.neurons)}"
     )
 
-    assert updated_axon.ip == external_ip, (
-        f"Expected IP {external_ip}, but got {updated_axon.ip}"
-    )
-
-    assert updated_axon.ip_type == networking.ip_version(external_ip), (
-        f"Expected IP type {networking.ip_version(external_ip)}, but got {updated_axon.ip_type}"
-    )
+    assert updated_axon.ip != "0.0.0.0", f"Axon IP was not updated: {updated_axon.ip}"
+    assert netaddr.IPAddress(updated_axon.ip).is_global()
+    assert updated_axon.ip_type == networking.ip_version(updated_axon.ip)
 
     assert updated_axon.port == 8091, f"Expected port 8091, but got {updated_axon.port}"
 
@@ -124,7 +120,6 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
         # Refresh the metagraph
         metagraph = await async_subtensor.metagraphs.metagraph(alice_sn.netuid)
         updated_axon = metagraph.axons[0]
-        external_ip = networking.get_external_ip()
 
     # Assert updated attributes
     assert len(metagraph.axons) == 1, (
@@ -135,13 +130,9 @@ async def test_axon_async(async_subtensor, templates, alice_wallet):
         f"Expected 1 neuron, but got {len(metagraph.neurons)}"
     )
 
-    assert updated_axon.ip == external_ip, (
-        f"Expected IP {external_ip}, but got {updated_axon.ip}"
-    )
-
-    assert updated_axon.ip_type == networking.ip_version(external_ip), (
-        f"Expected IP type {networking.ip_version(external_ip)}, but got {updated_axon.ip_type}"
-    )
+    assert updated_axon.ip != "0.0.0.0", f"Axon IP was not updated: {updated_axon.ip}"
+    assert netaddr.IPAddress(updated_axon.ip).is_global()
+    assert updated_axon.ip_type == networking.ip_version(updated_axon.ip)
 
     assert updated_axon.port == 8091, f"Expected port 8091, but got {updated_axon.port}"
 

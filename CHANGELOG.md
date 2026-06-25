@@ -1,5 +1,23 @@
 # Changelog
 
+## 10.5.0 /2026-06-25
+
+## What's Changed
+* Fix after aiohttp latest release by @basfroman in https://github.com/latent-to/bittensor/pull/3369
+* Forward version_key from commit_weights by @Yupsecous in https://github.com/latent-to/bittensor/pull/3368
+* Update docstrings for kill_pure_proxy_extrinsic by @chideraao in https://github.com/latent-to/bittensor/pull/3374
+* New balancer (attempt 3) by @basfroman in https://github.com/latent-to/bittensor/pull/3362
+* Improvement for async `determine_block_hash` method by @basfroman in https://github.com/latent-to/bittensor/pull/3375
+* fix: test_owner_lock_lifecycle e2e by @thewhaleking in https://github.com/latent-to/bittensor/pull/3379
+* Handle cyscale 0.5.0 by @thewhaleking in https://github.com/latent-to/bittensor/pull/3378
+* fix(pyproject): de-dupe build-system deps by @kilyanni in https://github.com/latent-to/bittensor/pull/3377
+
+## New Contributors
+* @Yupsecous made their first contribution in https://github.com/latent-to/bittensor/pull/3368
+* @kilyanni made their first contribution in https://github.com/latent-to/bittensor/pull/3377
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.1...v10.5.0
+
 ## 10.4.1 /2026-06-11
 
 ## What's Changed

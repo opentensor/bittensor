@@ -1,5 +1,5 @@
 """ "
-Subtensor spec version: 397
+Subtensor spec version: 417
 """
 
 System = "System"
@@ -25,3 +25,4 @@ Crowdloan = "Crowdloan"
 Swap = "Swap"
 Contracts = "Contracts"
 MevShield = "MevShield"
+LimitOrders = "LimitOrders"

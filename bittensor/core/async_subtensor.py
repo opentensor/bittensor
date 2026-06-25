@@ -13,7 +13,7 @@ from bittensor_drand import get_encrypted_commitment
 from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall, ScaleValue
 from scalecodec.base import ScaleType
-from scalecodec.utils.math import FixedPoint, fixed_to_decimal
+from scalecodec.utils.math import FixedPoint
 
 from bittensor.core.chain_data import (
     ColdkeySwapAnnouncementInfo,
@@ -29,8 +29,10 @@ from bittensor.core.chain_data import (
     ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyConstants,
+    ProxyFilterInfo,
     ProxyInfo,
     ProxyType,
+    ProxyTypeInfo,
     RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
@@ -80,12 +82,12 @@ from bittensor.core.extrinsics.asyncex.liquidity import (
     remove_liquidity_extrinsic,
     toggle_user_liquidity_extrinsic,
 )
-from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.asyncex.lock import (
     lock_stake_extrinsic,
     move_lock_extrinsic,
     set_perpetual_lock_extrinsic,
 )
+from bittensor.core.extrinsics.asyncex.mev_shield import submit_encrypted_extrinsic
 from bittensor.core.extrinsics.asyncex.move_stake import (
     move_stake_extrinsic,
     swap_stake_extrinsic,
@@ -127,6 +129,12 @@ from bittensor.core.extrinsics.asyncex.staking import (
 )
 from bittensor.core.extrinsics.asyncex.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.asyncex.take import set_take_extrinsic
+from bittensor.core.extrinsics.asyncex.tempo_control import (
+    root_set_activity_cutoff_factor_extrinsic,
+    set_activity_cutoff_factor_extrinsic,
+    set_tempo_extrinsic,
+    trigger_epoch_extrinsic,
+)
 from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_all_extrinsic,
@@ -151,13 +159,13 @@ from bittensor.core.settings import (
 )
 from bittensor.core.types import (
     BlockInfo,
+    EpochScheduleState,
     ExtrinsicResponse,
     LockState,
     Salt,
     SubtensorMixin,
     UIDs,
     Weights,
-    PositionResponse,
     NeuronCertificateResponse,
     CommitmentOfResponse,
     CrowdloansResponse,
@@ -165,7 +173,9 @@ from bittensor.core.types import (
 )
 from bittensor.utils import (
     Certificate,
+    ChainFeatureDisabledWarning,
     decode_hex_identity_dict,
+    deprecated_message,
     format_error_message,
     get_caller_name,
     get_mechid_storage_index,
@@ -174,19 +184,13 @@ from bittensor.utils import (
     u64_normalized_float,
     validate_max_attempts,
 )
+from bittensor.utils import epoch_schedule
 from bittensor.utils.balance import (
     Balance,
     check_balance_amount,
     fixed_to_float,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.liquidity import (
-    LiquidityPosition,
-    calculate_fees,
-    get_fees,
-    price_to_tick,
-    tick_to_price,
-)
 
 if TYPE_CHECKING:
     from async_substrate_interface import AsyncQueryMapResult
@@ -462,11 +466,12 @@ class AsyncSubtensor(SubtensorMixin):
         for blockchain queries.
 
         Parameter precedence (in order):
-            1. If `reuse_block=True` and `block` or `block_hash` is set → raises ValueError
-            2. If both `block` and `block_hash` are set → validates they match, raises ValueError if not
-            3. If only `block_hash` is set → returns it directly
-            4. If only `block` is set → fetches and returns its hash
-            5. If none are set → returns `None`
+            1. ``block`` + ``block_hash`` → validate they agree, return hash
+            2. ``block_hash`` only → return it (``reuse_block`` is ignored if also set)
+            3. ``block`` + ``reuse_block`` → raises ValueError
+            4. ``block`` only → fetch hash for the block number
+            5. ``reuse_block`` only → return ``substrate.last_block_hash`` (may be None)
+            6. none set → return None (chain tip)
 
         Parameters:
             block: The block number to get the hash for. If specifying along with `block_hash`, the hash of `block`
@@ -482,9 +487,8 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - <https://docs.learnbittensor.org/glossary#block>
         """
-        if reuse_block and any([block, block_hash]):
-            raise ValueError("Cannot specify both reuse_block and block_hash/block")
-        if block and block_hash:
+        # 1. explicit pair: strongest signal, validate consistency
+        if block is not None and block_hash is not None:
             retrieved_block_hash = await self.get_block_hash(block)
             if retrieved_block_hash != block_hash:
                 raise ValueError(
@@ -492,16 +496,25 @@ class AsyncSubtensor(SubtensorMixin):
                     f"the one you supplied. You supplied `block_hash={block_hash}` for `block={block}`, but this block"
                     f"maps to the block hash {retrieved_block_hash}."
                 )
-            else:
-                return retrieved_block_hash
+            return retrieved_block_hash
 
-        # Return the appropriate value.
-        if block_hash:
+        # 2. explicit hash wins; reuse_block is redundant after parent resolution
+        if block_hash is not None:
             return block_hash
+
+        # 3. real ambiguity: block number vs reuse flag, no hash to disambiguate
+        if block is not None and reuse_block:
+            raise ValueError("Cannot specify both reuse_block and block")
+
+        # 4. explicit block number
         if block is not None:
             return await self.get_block_hash(block)
+
+        # 5. reuse last queried block
         if reuse_block:
             return self.substrate.last_block_hash
+
+        # 6. chain tip
         return None
 
     async def _runtime_method_exists(
@@ -1110,36 +1123,35 @@ class AsyncSubtensor(SubtensorMixin):
     async def blocks_until_next_epoch(
         self,
         netuid: int,
-        tempo: Optional[int] = None,
+        *,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+        """Returns the number of blocks until the next epoch for the given subnet.
+
+        Derives the answer from the ``get_next_epoch_start_block`` runtime API.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            tempo: The tempo of the subnet.
-            block: The block number to query. Do not specify if using block_hash or reuse_block.
-            block_hash: The block hash at which to check the parameter. Do not set if using block or reuse_block.
-            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to check. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            The number of blocks until the next epoch of the subnet with provided netuid.
+            The number of blocks remaining, or ``None`` if the subnet has
+            tempo 0 (no epochs).
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        block = block or await self.substrate.get_block_number(block_hash=block_hash)
-        tempo = tempo or await self.tempo(netuid=netuid, block_hash=block_hash)
-
-        if not tempo:
+        block_number = block or await self.substrate.get_block_number(
+            block_hash=block_hash
+        )
+        next_start = await self.get_next_epoch_start_block(
+            netuid, block_hash=block_hash
+        )
+        if next_start is None:
             return None
-
-        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
-        netuid_plus_one = int(netuid) + 1
-        tempo_plus_one = tempo + 1
-        adjusted_block = (block + netuid_plus_one) % (2**64)
-        remainder = adjusted_block % tempo_plus_one
-        return tempo - remainder
+        return max(0, next_start - block_number)
 
     async def bonds(
         self,
@@ -1305,6 +1317,33 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+
+    async def get_activity_cutoff_factor_milli(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the activity cutoff factor (per-mille) for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The activity cutoff factor in per-mille units.
+        """
+        query = await self.query_subtensor(
+            name="ActivityCutoffFactorMilli",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
+        )
+        return query.value
 
     async def get_admin_freeze_window(
         self,
@@ -2828,6 +2867,59 @@ class AsyncSubtensor(SubtensorMixin):
         # TODO verify this from rao, seems like we're just rounding down
         return block_updated, Balance.from_rao(ema_value)
 
+    async def get_epoch_schedule_state(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> "EpochScheduleState":
+        """Returns a snapshot of all epoch-related storage for the given subnet.
+
+        All fields are read at the same block to ensure consistency.
+        Used by `bittensor-drand` v2 for commit/reveal prediction.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            An `EpochScheduleState` populated from on-chain storage.
+        """
+        block_hash = (
+            await self.determine_block_hash(block, block_hash, reuse_block)
+            or await self.substrate.get_chain_head()
+        )
+
+        block_number = block or await self.substrate.get_block_number(
+            block_hash=block_hash
+        )
+
+        (
+            last_epoch_block,
+            pending_epoch_at,
+            subnet_epoch_index,
+            tempo,
+            blocks_since_last_step,
+        ) = await asyncio.gather(
+            self.get_last_epoch_block(netuid, block_hash=block_hash),
+            self.get_pending_epoch_at(netuid, block_hash=block_hash),
+            self.get_subnet_epoch_index(netuid, block_hash=block_hash),
+            self.tempo(netuid, block_hash=block_hash),
+            self.blocks_since_last_step(netuid, block_hash=block_hash),
+        )
+
+        return EpochScheduleState(
+            last_epoch_block=last_epoch_block,
+            pending_epoch_at=pending_epoch_at,
+            subnet_epoch_index=subnet_epoch_index,
+            tempo=tempo,
+            blocks_since_last_step=blocks_since_last_step,
+            current_block=block_number,
+        )
+
     async def get_hotkey_conviction(
         self,
         hotkey_ss58: str,
@@ -2970,6 +3062,33 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return block_data.value
 
+    async def get_last_epoch_block(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the block number at which the last epoch ran for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The block number of the most recent epoch.
+        """
+        query = await self.query_subtensor(
+            name="LastEpochBlock",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
+        )
+        return query.value
+
     async def get_liquidity_list(
         self,
         wallet: "Wallet",
@@ -2977,9 +3096,8 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[list[LiquidityPosition]]:
+    ) -> list:
         """Retrieves all liquidity positions for the given wallet on a specified subnet (netuid).
-        Calculates associated fee rewards based on current global and tick-level fee data.
 
         Parameters:
             wallet: Wallet instance to fetch positions for.
@@ -2989,173 +3107,110 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used block hash.
 
         Returns:
-            List of liquidity positions, or None if subnet does not exist.
-
-        Notes:
-            - <https://docs.learnbittensor.org/liquidity-positions/
-            - <https://docs.learnbittensor.org/liquidity-positions/managing-liquidity-positions>
+            Always returns an empty list. User liquidity positions (Uniswap v3) have been permanently removed
+            from the chain and replaced by the Balancer swap mechanism.
         """
-        if not await self.subnet_exists(netuid=netuid):
-            logging.debug(f"Subnet {netuid} does not exist.")
-            return None
-
-        if not await self.is_subnet_active(netuid=netuid):
-            logging.debug(f"Subnet {netuid} is not active.")
-            return None
-
-        positions_response = await self.query_map(
-            module="Swap",
-            name="Positions",
-            params=[netuid, wallet.coldkeypub.ss58_address],
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
+        deprecated_message(
+            message="User liquidity positions have been permanently removed from the chain. "
+            "The Uniswap v3 swap mechanism has been replaced by the Balancer swap. "
+            "This method will always return an empty list.",
+            category=ChainFeatureDisabledWarning,
+            stacklevel=2,
         )
-        if len(positions_response.records) == 0:
-            return []
+        return []
 
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
+    async def get_max_activity_cutoff_factor_milli(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the upper bound for the activity-cutoff factor (per-mille).
 
-        # Fetch global fees and current price
-        fee_global_tao_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalTao",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        fee_global_alpha_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="FeeGlobalAlpha",
-            params=[netuid],
-            block_hash=block_hash,
-        )
-        sqrt_price_query_sk = await self.substrate.create_storage_key(
-            pallet="Swap",
-            storage_function="AlphaSqrtPrice",
-            params=[netuid],
+        This chain constant defines the maximum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The upper bound for the activity-cutoff factor in per-mille.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxActivityCutoffFactorMilli",
             block_hash=block_hash,
         )
 
-        (
-            fee_global_tao_query,
-            fee_global_alpha_query,
-            sqrt_price_query,
-        ) = await self.substrate.query_multi(
-            storage_keys=[
-                fee_global_tao_query_sk,
-                fee_global_alpha_query_sk,
-                sqrt_price_query_sk,
-            ],
+        if result is None:
+            raise Exception("Unable to retrieve MaxActivityCutoffFactorMilli constant.")
+
+        return result.value
+
+    async def get_max_epochs_per_block(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the per-block cap on the number of subnet epochs that may execute in a single block step.
+
+        When more subnets are due for an epoch than this cap allows, excess epochs are deferred to the next block via
+        ``PendingEpochAt``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The maximum number of subnet epochs allowed per block.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxEpochsPerBlock",
             block_hash=block_hash,
         )
 
-        # convert to floats
-        fee_global_tao = fixed_to_float(fee_global_tao_query[1])
-        fee_global_alpha = fixed_to_float(fee_global_alpha_query[1])
-        sqrt_price = fixed_to_float(sqrt_price_query[1])
+        if result is None:
+            raise Exception("Unable to retrieve MaxEpochsPerBlock constant.")
 
-        # Fetch global fees and current price
-        current_tick = price_to_tick(sqrt_price**2)
+        return result.value
 
-        # Fetch positions
-        positions_values: list[tuple[PositionResponse, int, int]] = []
-        positions_storage_keys: list[StorageKey] = []
-        position: PositionResponse
-        async for _, position in positions_response:
-            tick_low_idx = position.get("tick_low")
-            tick_high_idx = position.get("tick_high")
-            positions_values.append((position, tick_low_idx, tick_high_idx))
-            tick_low_sk = await self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_low_idx],
-                block_hash=block_hash,
-            )
-            tick_high_sk = await self.substrate.create_storage_key(
-                pallet="Swap",
-                storage_function="Ticks",
-                params=[netuid, tick_high_idx],
-                block_hash=block_hash,
-            )
-            positions_storage_keys.extend([tick_low_sk, tick_high_sk])
+    async def get_max_tempo(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the upper bound for owner-set tempo.
 
-        # query all our ticks at once
-        ticks_query = await self.substrate.query_multi(
-            positions_storage_keys, block_hash=block_hash
+        This chain constant defines the maximum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The maximum allowed tempo value in blocks.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxTempo",
+            block_hash=block_hash,
         )
-        # iterator with just the values
-        ticks = iter([x[1] for x in ticks_query])
-        positions: list[LiquidityPosition] = []
-        for position, tick_low_idx, tick_high_idx in positions_values:
-            tick_low = next(ticks)
-            tick_high = next(ticks)
-            # Calculate fees above/below range for both tokens
-            tao_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            tao_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=True,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
-            alpha_below = get_fees(
-                current_tick=current_tick,
-                tick=tick_low,
-                tick_index=tick_low_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=False,
-            )
-            alpha_above = get_fees(
-                current_tick=current_tick,
-                tick=tick_high,
-                tick_index=tick_high_idx,
-                quote=False,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                above=True,
-            )
 
-            # Calculate fees earned by position
-            fees_tao, fees_alpha = calculate_fees(
-                position=position,
-                global_fees_tao=fee_global_tao,
-                global_fees_alpha=fee_global_alpha,
-                tao_fees_below_low=tao_below,
-                tao_fees_above_high=tao_above,
-                alpha_fees_below_low=alpha_below,
-                alpha_fees_above_high=alpha_above,
-                netuid=netuid,
-            )
+        if result is None:
+            raise Exception("Unable to retrieve MaxTempo constant.")
 
-            positions.append(
-                LiquidityPosition(
-                    id=position.get("id"),
-                    price_low=Balance.from_tao(tick_to_price(position.get("tick_low"))),
-                    price_high=Balance.from_tao(
-                        tick_to_price(position.get("tick_high"))
-                    ),
-                    liquidity=Balance.from_rao(position.get("liquidity")),
-                    fees_tao=fees_tao,
-                    fees_alpha=fees_alpha,
-                    netuid=position.get("netuid"),
-                )
-            )
-
-        return positions
+        return result.value
 
     async def get_mechanism_emission_split(
         self,
@@ -3416,6 +3471,68 @@ class AsyncSubtensor(SubtensorMixin):
 
         return public_key_bytes
 
+    async def get_min_activity_cutoff_factor_milli(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the lower bound for the activity-cutoff factor (per-mille).
+
+        This chain constant defines the minimum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The lower bound for the activity-cutoff factor in per-mille.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinActivityCutoffFactorMilli",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinActivityCutoffFactorMilli constant.")
+
+        return result.value
+
+    async def get_min_tempo(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the lower bound for owner-set tempo.
+
+        This chain constant defines the minimum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``. Also serves as the fixed cooldown between consecutive ``set_tempo`` calls.
+
+        Parameters:
+            block: The blockchain block number for the query.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            The minimum allowed tempo value in blocks.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinTempo",
+            block_hash=block_hash,
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinTempo constant.")
+
+        return result.value
+
     async def get_minimum_required_stake(self) -> Balance:
         """Returns the minimum required stake threshold for nominator cleanup operations.
 
@@ -3596,39 +3713,34 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
-        """
-        Calculates the first block number of the next epoch for the given subnet.
+        """Returns the block at which the next epoch will fire for the given subnet.
 
-        If `block` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
-        tempo (i.e., blocks per epoch). The result is the block number at which the next epoch will begin.
+        Delegates to the ``SubnetInfoRuntimeApi.get_next_epoch_start_block``
+        runtime API, which accounts for both the auto-timer
+        (``last_epoch_block + tempo``) and any pending owner-triggered epoch.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The reference block to calculate from. If `None`, uses the current chain block height.
-            block_hash: The blockchain block number at which to perform the query.
+            block: The reference block to query. If ``None``, uses the current chain head.
+            block_hash: The blockchain block hash at which to perform the query.
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            int: The block number at which the next epoch will start.
+            The block number at which the next epoch will start, or ``None``
+            if tempo is 0 (subnet does not run epochs).
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#tempo>
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        tempo = await self.tempo(netuid=netuid, block_hash=block_hash)
-        current_block = block or await self.block
-
-        if not tempo:
-            return None
-
-        blocks_until = await self.blocks_until_next_epoch(
-            netuid=netuid, tempo=tempo, block_hash=block_hash
+        result = await self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_next_epoch_start_block",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
-
-        if blocks_until is None:
-            return None
-
-        return current_block + blocks_until + 1
+        return None if result is None else int(result)
 
     async def get_owned_hotkeys(
         self,
@@ -3658,6 +3770,30 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return owned_hotkeys.value or []
+
+    async def get_owner_hyperparam_rate_limit(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the owner hyperparameter rate limit (in tempos).
+
+        Parameters:
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The rate limit in tempos.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        query = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="OwnerHyperparamRateLimit",
+            block_hash=block_hash,
+        )
+        return query.value
 
     async def get_parents(
         self,
@@ -3701,6 +3837,33 @@ class AsyncSubtensor(SubtensorMixin):
             return formatted_parents
 
         return []
+
+    async def get_pending_epoch_at(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the pending (owner-triggered) epoch block, or 0 if none is scheduled.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The block at which the triggered epoch will fire, or 0.
+        """
+        query = await self.query_subtensor(
+            name="PendingEpochAt",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
+        )
+        return query.value
 
     async def get_proxies(
         self,
@@ -3908,6 +4071,75 @@ class AsyncSubtensor(SubtensorMixin):
         proxy_constants = ProxyConstants.from_dict(result)
 
         return proxy_constants.to_dict() if as_dict else proxy_constants
+
+    async def get_proxy_filter(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[ProxyFilterInfo]:
+        """Retrieves proxy filter rules from the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyFilter`` runtime API to get detailed information about which
+        extrinsics are allowed or denied for each proxy type. This is the authoritative source of truth for proxy
+        permissions.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+            block_hash: The hash of the block at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+
+        Returns:
+            List of ProxyFilterInfo objects describing the filter rules for all proxy types.
+
+        Notes:
+            - Filter modes:
+                - ``"AllowAll"``: All calls are permitted (e.g., ``ProxyType.Any``).
+                - ``"DenyAll"``: No calls are permitted (e.g., deprecated types).
+                - ``"Allow"``: Only calls listed in ``calls`` are permitted (minus ``exceptions``).
+                - ``"Deny"``: All calls are permitted EXCEPT those listed in ``calls``.
+            - A call entry with ``call_name=None`` means the rule applies to ALL calls in that pallet.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.runtime_call(
+            api="ProxyFilterRuntimeApi",
+            method="get_proxy_filter",
+            params=[None],
+            block_hash=block_hash,
+        )
+        return ProxyFilterInfo.from_list(result)
+
+    async def get_proxy_types(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> list[ProxyTypeInfo]:
+        """Retrieves all proxy type variants defined in the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyTypes`` runtime API to get the complete list of proxy types with
+        their indices and deprecation status. This is the authoritative source of truth for which proxy types exist in
+        the current runtime.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+            block_hash: The hash of the block at which to query. Do not set if using ``block`` or ``reuse_block``.
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using ``block_hash`` or ``block``.
+
+        Returns:
+            List of ProxyTypeInfo objects representing all proxy type variants in the runtime.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        result = await self.substrate.runtime_call(
+            api="ProxyFilterRuntimeApi",
+            method="get_proxy_types",
+            block_hash=block_hash,
+        )
+        return ProxyTypeInfo.from_list(result)
 
     async def get_revealed_commitment(
         self,
@@ -4126,14 +4358,15 @@ class AsyncSubtensor(SubtensorMixin):
             - See: <https://docs.learnbittensor.org/staking-and-delegation/root-claims/managing-root-claims>
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        query: ScaleType[list[tuple[int, FixedPoint]]] = await self.substrate.query(
+        query: ScaleType[dict[int, FixedPoint]] = await self.substrate.query(
             module="SubtensorModule",
             storage_function="RootClaimable",
             params=[hotkey_ss58],
             block_hash=block_hash,
         )
         return {
-            netuid: fixed_to_float(bits, frac_bits=32) for (netuid, bits) in query.value
+            netuid: fixed_to_float(bits, frac_bits=32)
+            for (netuid, bits) in query.value.items()
         }
 
     async def get_root_claimable_stake(
@@ -4301,6 +4534,52 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return sim_swap_result.tao_fee
+
+    async def get_stake_availability_for_coldkeys(
+        self,
+        coldkey_ss58s: list[str],
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict:
+        """
+        Batch query of stake availability per coldkey and subnet.
+
+        Returns how much alpha each coldkey has staked on each subnet, how much is locked by conviction, and how much
+        is free to unstake right now. All values are in rao (raw integer units).
+
+        Parameters:
+            coldkey_ss58s: SS58 addresses of the coldkeys to query.
+            netuids: Subnet UIDs to limit the scan to. ``None`` scans all subnets.
+            block: The block number to query. Do not specify if using ``block_hash`` or ``reuse_block``.
+            block_hash: The block hash at which to query.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            A nested dict ``{coldkey_ss58: {netuid: {total, locked, available}}}``.
+            Each inner dict contains:
+
+            - ``total`` - all alpha staked on the subnet across all hotkeys (rao).
+            - ``locked`` - current locked mass after decay (rao).
+            - ``available`` - alpha that can be unstaked now, i.e. ``total - locked`` (rao).
+
+            Subnets with zero stake and zero lock are omitted.
+            Coldkeys from the request are always present (inner dict may be empty).
+
+        Example::
+
+            result = await subtensor.get_stake_availability_for_coldkeys(["5HGj..."])
+            available_rao = result["5HGj..."][2]["available"]
+        """
+        return await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_availability_for_coldkeys",
+            params=[coldkey_ss58s, netuids],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
 
     async def get_stake_lock(
         self,
@@ -4686,6 +4965,33 @@ class AsyncSubtensor(SubtensorMixin):
         else:
             return lock_cost
 
+    async def get_subnet_epoch_index(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> int:
+        """Returns the monotonic epoch counter for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using `block_hash` or `reuse_block`.
+            block_hash: The block hash at which to check. Do not set if using `block` or `reuse_block`.
+            reuse_block: Whether to reuse the last-used block hash.
+
+        Returns:
+            The current epoch index.
+        """
+        query = await self.query_subtensor(
+            name="SubnetEpochIndex",
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid],
+        )
+        return query.value
+
     async def get_subnet_hyperparameters(
         self,
         netuid: int,
@@ -4693,9 +4999,10 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional["SubnetHyperparameters"]:
-        """
-        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
-        the operational settings and rules governing the subnet's behavior.
+        """Retrieves the hyperparameters for a specific subnet.
+
+        Tries the v3 ``Vec<HyperparamEntry>`` runtime API first, then falls
+        back to v2 and v1 struct APIs at the requested block.
 
         Parameters:
             netuid: The network UID of the subnet to query.
@@ -4704,24 +5011,21 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain hash.
 
         Returns:
-            The subnet's hyperparameters, or `None` if not available.
-
-        Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
-        they interact with the network's consensus and incentive mechanisms.
+            The subnet's hyperparameters, or ``None`` if not available.
         """
-        result = await self.query_runtime_api(
-            runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_hyperparams_v2",
-            params=[netuid],
+        block_hash = await self.determine_block_hash(
             block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-
-        if not result:
-            return None
-
-        return SubnetHyperparameters.from_dict(result)
+        result = await self._runtime_call_with_fallback(
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams_v3", [netuid]),
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams_v2", [netuid]),
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams", [netuid]),
+            block_hash=block_hash,
+            default_value=None,
+        )
+        return SubnetHyperparameters.from_any(result) if result else None
 
     async def get_subnet_info(
         self,
@@ -4846,23 +5150,37 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(
             block=block, block_hash=block_hash, reuse_block=reuse_block
         )
+        if block_hash is None:
+            block_hash = await self.substrate.get_chain_head()
 
-        current_sqrt_prices = await self.substrate.query_map(
-            module="Swap",
-            storage_function="AlphaSqrtPrice",
+        if await self._runtime_method_exists(
+            api="SwapRuntimeApi",
+            method="current_alpha_price_all",
             block_hash=block_hash,
-            page_size=129,  # total number of subnets
+        ):
+            prices_rao = cast(
+                list[dict],
+                await self.substrate.runtime_call(
+                    api="SwapRuntimeApi",
+                    method="current_alpha_price_all",
+                    block_hash=block_hash,
+                ),
+            )
+            return {p["netuid"]: Balance.from_rao(p["price"]) for p in prices_rao}
+
+        netuids = await self.get_all_subnets_netuid(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
         )
-
-        prices = {}
-        async for id_, current_sqrt_price_bits in current_sqrt_prices:
-            current_sqrt_price = fixed_to_decimal(current_sqrt_price_bits)
-            current_price = current_sqrt_price * current_sqrt_price
-            current_price_in_tao = Balance.from_tao(float(current_price))
-            prices.update({id_: current_price_in_tao})
-
-        # SN0 price is always 1 TAO
-        prices.update({0: Balance.from_tao(1)})
+        prices_list = await asyncio.gather(
+            *[
+                self.get_subnet_price(
+                    netuid, block=block, block_hash=block_hash, reuse_block=reuse_block
+                )
+                for netuid in netuids
+            ]
+        )
+        prices = dict(zip(netuids, prices_list))
+        prices[0] = Balance.from_tao(1)
         return prices
 
     async def get_subnet_reveal_period_epochs(
@@ -5291,10 +5609,11 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """
-        Returns True if the current block is within the terminal freeze window of the tempo
-        for the given subnet. During this window, admin ops are prohibited to avoid interference
-        with validator weight submissions.
+        """Returns whether owner operations are currently blocked for the subnet.
+
+        Matches the chain's ``is_in_admin_freeze_window`` logic: a pending
+        triggered epoch in the future **or** fewer than ``admin_freeze_window``
+        blocks remaining until the next auto epoch.
 
         Parameters:
             netuid: The unique identifier of the subnet.
@@ -5303,28 +5622,35 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the last-used blockchain block hash.
 
         Returns:
-            bool: True if in freeze window, else False.
+            ``True`` if in freeze window, ``False`` otherwise.
         """
-        # SN0 doesn't have admin_freeze_window
         if netuid == 0:
             return False
 
-        next_epoch_start_block, window = await asyncio.gather(
-            self.get_next_epoch_start_block(
-                netuid=netuid,
-                block=block,
-                block_hash=block_hash,
-                reuse_block=reuse_block,
-            ),
-            self.get_admin_freeze_window(
-                block=block, block_hash=block_hash, reuse_block=reuse_block
-            ),
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_number = block or await self.substrate.get_block_number(
+            block_hash=block_hash
         )
 
-        if next_epoch_start_block is not None:
-            remaining = next_epoch_start_block - await self.block
-            return remaining < window
-        return False
+        (
+            tempo,
+            pending_epoch_at,
+            last_epoch_block,
+            admin_freeze_window,
+        ) = await asyncio.gather(
+            self.tempo(netuid, block_hash=block_hash),
+            self.get_pending_epoch_at(netuid, block_hash=block_hash),
+            self.get_last_epoch_block(netuid, block_hash=block_hash),
+            self.get_admin_freeze_window(block_hash=block_hash),
+        )
+
+        return epoch_schedule.is_in_admin_freeze_window(
+            tempo=tempo or 0,
+            pending_epoch_at=pending_epoch_at,
+            last_epoch_block=last_epoch_block,
+            block_number=block_number,
+            admin_freeze_window=admin_freeze_window,
+        )
 
     async def is_fast_blocks(self) -> bool:
         """Checks if the node is running with fast blocks enabled.
@@ -7041,6 +7367,7 @@ class AsyncSubtensor(SubtensorMixin):
                     uids=uids,
                     weights=weights,
                     salt=salt,
+                    version_key=version_key,
                     mev_protection=mev_protection,
                     period=period,
                     raise_error=raise_error,
@@ -7490,9 +7817,8 @@ class AsyncSubtensor(SubtensorMixin):
         method automatically handles this by executing the call via :meth:`proxy`.
 
         Parameters:
-            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address must be the spawner of the pure proxy (the
-                account that created it via :meth:`create_pure_proxy`). The spawner must have an "Any" proxy relationship
-                with the pure proxy.
+            wallet: Bittensor wallet object. The wallet.coldkey.ss58_address can either be the spawner or an account
+                with an "Any" proxy relationship to the pure proxy.
             pure_proxy_ss58: The SS58 address of the pure proxy account to be killed. This is the address that was
                 returned in the :meth:`create_pure_proxy` response.
             spawner: The SS58 address of the spawner account (the account that originally created the pure proxy via
@@ -8670,6 +8996,53 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
+    async def root_set_activity_cutoff_factor(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        factor_milli: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the activity cutoff factor via sudo (root only).
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic.
+            netuid: The unique identifier of the subnet.
+            factor_milli: Activity cutoff factor in per-mille units.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await root_set_activity_cutoff_factor_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            factor_milli=factor_milli,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
     async def root_set_pending_childkey_cooldown(
         self,
         wallet: "Wallet",
@@ -8708,6 +9081,53 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def set_activity_cutoff_factor(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        factor_milli: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the activity cutoff factor for a subnet. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            factor_milli: Activity cutoff factor in per-mille units.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await set_activity_cutoff_factor_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            factor_milli=factor_milli,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -9064,6 +9484,53 @@ class AsyncSubtensor(SubtensorMixin):
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def set_tempo(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        tempo: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the epoch tempo for a subnet. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            tempo: New tempo value (blocks per epoch).
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await set_tempo_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            tempo=tempo,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -9812,6 +10279,50 @@ class AsyncSubtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    async def trigger_epoch(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Schedules an owner-triggered epoch to fire after the admin freeze window elapses. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return await trigger_epoch_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
