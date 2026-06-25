@@ -3,8 +3,6 @@
 ## 10.5.0 /2026-06-25
 
 ## What's Changed
-* Fix for flaky test_staking tests by @thewhaleking in https://github.com/latent-to/bittensor/pull/3367
-* Fix for flaky root claims tests by @thewhaleking in https://github.com/latent-to/bittensor/pull/3366
 * Fix after aiohttp latest release by @basfroman in https://github.com/latent-to/bittensor/pull/3369
 * Forward version_key from commit_weights by @Yupsecous in https://github.com/latent-to/bittensor/pull/3368
 * Update docstrings for kill_pure_proxy_extrinsic by @chideraao in https://github.com/latent-to/bittensor/pull/3374
@@ -18,7 +16,7 @@
 * @Yupsecous made their first contribution in https://github.com/latent-to/bittensor/pull/3368
 * @kilyanni made their first contribution in https://github.com/latent-to/bittensor/pull/3377
 
-**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.0...v10.5.0
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.1...v10.5.0
 
 ## 10.4.1 /2026-06-11
 
