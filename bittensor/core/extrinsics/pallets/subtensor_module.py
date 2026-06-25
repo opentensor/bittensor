@@ -848,3 +848,38 @@ class SubtensorModule(_BasePallet):
             destination_netuid=destination_netuid,
             alpha_amount=alpha_amount,
         )
+
+    def set_tempo(self, netuid: int, tempo: int) -> Call:
+        """Returns GenericCall instance for SubtensorModule.set_tempo.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            tempo: New tempo value (blocks per epoch).
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(netuid=netuid, tempo=tempo)
+
+    def set_activity_cutoff_factor(self, netuid: int, factor_milli: int) -> Call:
+        """Returns GenericCall instance for SubtensorModule.set_activity_cutoff_factor.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+            factor_milli: Activity cutoff factor in per-mille units.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(netuid=netuid, factor_milli=factor_milli)
+
+    def trigger_epoch(self, netuid: int) -> Call:
+        """Returns GenericCall instance for SubtensorModule.trigger_epoch.
+
+        Parameters:
+            netuid: The unique identifier of the subnet.
+
+        Returns:
+            GenericCall instance.
+        """
+        return self.create_composed_call(netuid=netuid)

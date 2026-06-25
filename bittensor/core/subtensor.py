@@ -30,8 +30,10 @@ from bittensor.core.chain_data import (
     ProposalVoteData,
     ProxyAnnouncementInfo,
     ProxyConstants,
+    ProxyFilterInfo,
     ProxyInfo,
     ProxyType,
+    ProxyTypeInfo,
     RootClaimType,
     SelectiveMetagraphIndex,
     SimSwapResult,
@@ -47,6 +49,7 @@ from bittensor.core.chain_data.utils import (
     decode_revealed_commitment,
     decode_revealed_commitment_with_hotkey,
 )
+from bittensor.utils import epoch_schedule
 from bittensor.core.config import Config
 from bittensor.core.errors import ChainError, chain_error_from_substrate_exception
 from bittensor.core.extrinsics.children import (
@@ -123,6 +126,12 @@ from bittensor.core.extrinsics.staking import (
 )
 from bittensor.core.extrinsics.start_call import start_call_extrinsic
 from bittensor.core.extrinsics.take import set_take_extrinsic
+from bittensor.core.extrinsics.tempo_control import (
+    root_set_activity_cutoff_factor_extrinsic,
+    set_activity_cutoff_factor_extrinsic,
+    set_tempo_extrinsic,
+    trigger_epoch_extrinsic,
+)
 from bittensor.core.extrinsics.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.unstaking import (
     unstake_all_extrinsic,
@@ -147,6 +156,7 @@ from bittensor.core.settings import (
 )
 from bittensor.core.types import (
     BlockInfo,
+    EpochScheduleState,
     ExtrinsicResponse,
     LockState,
     Salt,
@@ -894,30 +904,25 @@ class Subtensor(SubtensorMixin):
         return None if len(call) == 0 else (block - int(call[uid]))
 
     def blocks_until_next_epoch(
-        self, netuid: int, tempo: Optional[int] = None, block: Optional[int] = None
+        self, netuid: int, *, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns the number of blocks until the next epoch of subnet with provided netuid.
+        """Returns the number of blocks until the next epoch for the given subnet.
+
+        Derives the answer from the ``get_next_epoch_start_block`` runtime API.
 
         Parameters:
             netuid: The unique identifier of the subnetwork.
-            tempo: The tempo of the subnet.
-            block: the block number for this query.
+            block: The block number to query. If ``None``, queries the current chain head.
 
         Returns:
-            The number of blocks until the next epoch of the subnet with provided netuid.
+            The number of blocks remaining, or ``None`` if the subnet has
+            tempo 0 (no epochs).
         """
-        block = block or self.block
-
-        tempo = tempo or self.tempo(netuid=netuid)
-        if not tempo:
+        block_number = block or self.block
+        next_start = self.get_next_epoch_start_block(netuid, block=block_number)
+        if next_start is None:
             return None
-
-        # the logic is the same as in SubtensorModule:blocks_until_next_epoch
-        netuid_plus_one = int(netuid) + 1
-        tempo_plus_one = tempo + 1
-        adjusted_block = (block + netuid_plus_one) % (2**64)
-        remainder = adjusted_block % tempo_plus_one
-        return tempo - remainder
+        return max(0, next_start - block_number)
 
     def bonds(
         self,
@@ -1040,6 +1045,24 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+
+    def get_activity_cutoff_factor_milli(
+        self, netuid: int, block: Optional[int] = None
+    ) -> int:
+        """Returns the activity cutoff factor (per-mille) for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            The activity cutoff factor in per-mille units.
+        """
+        query = self.query_subtensor(
+            name="ActivityCutoffFactorMilli", block=block, params=[netuid]
+        )
+
+        return cast(int, query.value)
 
     def get_admin_freeze_window(self, block: Optional[int] = None) -> int:
         """Returns the duration, in blocks, of the administrative freeze window at the end of each epoch.
@@ -2306,6 +2329,33 @@ class Subtensor(SubtensorMixin):
         # TODO verify this from rao, seems like we're just rounding down
         return block_updated, Balance.from_rao(ema_value)
 
+    def get_epoch_schedule_state(
+        self, netuid: int, block: Optional[int] = None
+    ) -> "EpochScheduleState":
+        """Returns a snapshot of all epoch-related storage for the given subnet.
+
+        All fields are read at the same block to ensure consistency.
+        Used by `bittensor-drand` v2 for commit/reveal prediction.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            An `EpochScheduleState` populated from on-chain storage.
+        """
+        block_number = block or self.block
+        return EpochScheduleState(
+            last_epoch_block=self.get_last_epoch_block(netuid, block=block_number),
+            pending_epoch_at=self.get_pending_epoch_at(netuid, block=block_number),
+            subnet_epoch_index=self.get_subnet_epoch_index(netuid, block=block_number),
+            tempo=cast(int, self.tempo(netuid, block=block_number)),
+            blocks_since_last_step=cast(
+                int, self.blocks_since_last_step(netuid, block=block_number)
+            ),
+            current_block=block_number,
+        )
+
     def get_hotkey_conviction(
         self,
         hotkey_ss58: str,
@@ -2416,6 +2466,21 @@ class Subtensor(SubtensorMixin):
         block_data = self.get_last_bonds_reset(netuid, hotkey_ss58, block)
         return block_data.value
 
+    def get_last_epoch_block(self, netuid: int, block: Optional[int] = None) -> int:
+        """Returns the block number at which the last epoch ran for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            The block number of the most recent epoch.
+        """
+        query = self.query_subtensor(
+            name="LastEpochBlock", block=block, params=[netuid]
+        )
+        return cast(int, query.value)
+
     def get_liquidity_list(
         self,
         wallet: "Wallet",
@@ -2442,6 +2507,75 @@ class Subtensor(SubtensorMixin):
             stacklevel=2,
         )
         return []
+
+    def get_max_activity_cutoff_factor_milli(self, block: Optional[int] = None) -> int:
+        """Returns the upper bound for the activity-cutoff factor (per-mille).
+
+        This chain constant defines the maximum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The upper bound for the activity-cutoff factor in per-mille.
+        """
+        result = self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxActivityCutoffFactorMilli",
+            block_hash=self.determine_block_hash(block),
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxActivityCutoffFactorMilli constant.")
+
+        return cast(int, result.value)
+
+    def get_max_epochs_per_block(self, block: Optional[int] = None) -> int:
+        """Returns the per-block cap on the number of subnet epochs that may execute in a single block step.
+
+        When more subnets are due for an epoch than this cap allows, excess epochs are deferred to the next block via
+        ``PendingEpochAt``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The maximum number of subnet epochs allowed per block.
+        """
+        result = self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxEpochsPerBlock",
+            block_hash=self.determine_block_hash(block),
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxEpochsPerBlock constant.")
+
+        return cast(int, result.value)
+
+    def get_max_tempo(self, block: Optional[int] = None) -> int:
+        """Returns the upper bound for owner-set tempo.
+
+        This chain constant defines the maximum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The maximum allowed tempo value in blocks.
+        """
+        result = self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MaxTempo",
+            block_hash=self.determine_block_hash(block),
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MaxTempo constant.")
+
+        return cast(int, result.value)
 
     def get_mechanism_emission_split(
         self, netuid: int, block: Optional[int] = None
@@ -2683,6 +2817,52 @@ class Subtensor(SubtensorMixin):
 
         return public_key_bytes
 
+    def get_min_activity_cutoff_factor_milli(self, block: Optional[int] = None) -> int:
+        """Returns the lower bound for the activity-cutoff factor (per-mille).
+
+        This chain constant defines the minimum value a subnet owner can set for the activity-cutoff factor via
+        ``set_activity_cutoff_factor``. The factor is expressed in per-mille units relative to the subnet's tempo.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The lower bound for the activity-cutoff factor in per-mille.
+        """
+        result = self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinActivityCutoffFactorMilli",
+            block_hash=self.determine_block_hash(block),
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinActivityCutoffFactorMilli constant.")
+
+        return cast(int, result.value)
+
+    def get_min_tempo(self, block: Optional[int] = None) -> int:
+        """Returns the lower bound for owner-set tempo.
+
+        This chain constant defines the minimum epoch period (in blocks) that a subnet owner can configure via
+        ``set_tempo``. Also serves as the fixed cooldown between consecutive ``set_tempo`` calls.
+
+        Parameters:
+            block: The blockchain block number for the query.
+
+        Returns:
+            The minimum allowed tempo value in blocks.
+        """
+        result = self.substrate.get_constant(
+            module_name="SubtensorModule",
+            constant_name="MinTempo",
+            block_hash=self.determine_block_hash(block),
+        )
+
+        if result is None:
+            raise Exception("Unable to retrieve MinTempo constant.")
+
+        return cast(int, result.value)
+
     def get_minimum_required_stake(self) -> Balance:
         """Returns the minimum required stake threshold for nominator cleanup operations.
 
@@ -2828,36 +3008,30 @@ class Subtensor(SubtensorMixin):
     def get_next_epoch_start_block(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """
-        Calculates the first block number of the next epoch for the given subnet.
+        """Returns the block at which the next epoch will fire for the given subnet.
 
-        If `block` is not provided, the current chain block will be used. Epochs are determined based on the subnet's
-        tempo (i.e., blocks per epoch). The result is the block number at which the next epoch will begin.
+        Delegates to the ``SubnetInfoRuntimeApi.get_next_epoch_start_block``
+        runtime API, which accounts for both the auto-timer
+        (``last_epoch_block + tempo``) and any pending owner-triggered epoch.
 
         Parameters:
             netuid: The unique identifier of the subnet.
-            block: The reference block to calculate from. If None, uses the current chain block height.
+            block: The reference block to query. If ``None``, uses the current chain head.
 
         Returns:
-            int: The block number at which the next epoch will start, or None if tempo is 0 or invalid.
+            The block number at which the next epoch will start, or ``None``
+            if tempo is 0 (subnet does not run epochs).
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#tempo>
         """
-        tempo = self.tempo(netuid=netuid, block=block)
-        current_block = block or self.block
-
-        if not tempo:
-            return None
-
-        blocks_until = self.blocks_until_next_epoch(
-            netuid=netuid, tempo=tempo, block=current_block
+        result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_next_epoch_start_block",
+            params=[netuid],
+            block=block,
         )
-
-        if blocks_until is None:
-            return None
-
-        return current_block + blocks_until + 1
+        return None if result is None else int(result)
 
     def get_owned_hotkeys(
         self,
@@ -2882,6 +3056,22 @@ class Subtensor(SubtensorMixin):
             block_hash=block_hash,
         )
         return owned_hotkeys.value or []
+
+    def get_owner_hyperparam_rate_limit(self, block: Optional[int] = None) -> int:
+        """Returns the owner hyperparameter rate limit (in tempos).
+
+        Parameters:
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            The rate limit in tempos.
+        """
+        query: ScaleType[int] = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="OwnerHyperparamRateLimit",
+            block_hash=self.determine_block_hash(block),
+        )
+        return query.value
 
     def get_parents(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -2917,6 +3107,21 @@ class Subtensor(SubtensorMixin):
             return formatted_parents
 
         return []
+
+    def get_pending_epoch_at(self, netuid: int, block: Optional[int] = None) -> int:
+        """Returns the pending (owner-triggered) epoch block, or 0 if none is scheduled.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            The block at which the triggered epoch will fire, or 0.
+        """
+        query = self.query_subtensor(
+            name="PendingEpochAt", block=block, params=[netuid]
+        )
+        return cast(int, query.value)
 
     def get_proxies(self, block: Optional[int] = None) -> dict[str, list[ProxyInfo]]:
         """
@@ -3098,6 +3303,73 @@ class Subtensor(SubtensorMixin):
         proxy_constants = ProxyConstants.from_dict(result)
 
         return proxy_constants.to_dict() if as_dict else proxy_constants
+
+    def get_proxy_filter(
+        self,
+        block: Optional[int] = None,
+    ) -> list[ProxyFilterInfo]:
+        """Retrieves proxy filter rules from the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyFilter`` runtime API to get detailed information about which
+        extrinsics are allowed or denied for each proxy type. This is the authoritative source of truth for proxy
+        permissions.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+
+        Returns:
+            List of ProxyFilterInfo objects describing the filter rules for all proxy types.
+
+        Notes:
+            - Filter modes:
+                - ``"AllowAll"``: All calls are permitted (e.g., ``ProxyType.Any``).
+                - ``"DenyAll"``: No calls are permitted (e.g., deprecated types).
+                - ``"Allow"``: Only calls listed in ``calls`` are permitted (minus ``exceptions``).
+                - ``"Deny"``: All calls are permitted EXCEPT those listed in ``calls``.
+            - A call entry with ``call_name=None`` means the rule applies to ALL calls in that pallet.
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = self.determine_block_hash(block)
+        result = cast(
+            list[dict],
+            self.substrate.runtime_call(
+                api="ProxyFilterRuntimeApi",
+                method="get_proxy_filter",
+                params=[None],
+                block_hash=block_hash,
+            ),
+        )
+        return ProxyFilterInfo.from_list(result)
+
+    def get_proxy_types(
+        self,
+        block: Optional[int] = None,
+    ) -> list[ProxyTypeInfo]:
+        """Retrieves all proxy type variants defined in the runtime.
+
+        Queries the ``ProxyFilterRuntimeApi.getProxyTypes`` runtime API to get the complete list of proxy types with
+        their indices and deprecation status. This is the authoritative source of truth for which proxy types exist in
+        the current runtime.
+
+        Parameters:
+            block: The blockchain block number for the query. If ``None``, queries the latest block.
+
+        Returns:
+            List of ProxyTypeInfo objects representing all proxy type variants in the runtime.
+
+        Notes:
+            - See: <https://docs.learnbittensor.org/keys/proxies>
+        """
+        block_hash = self.determine_block_hash(block)
+        result = cast(
+            list[dict],
+            self.substrate.runtime_call(
+                api="ProxyFilterRuntimeApi",
+                method="get_proxy_types",
+                block_hash=block_hash,
+            ),
+        )
+        return ProxyTypeInfo.from_list(result)
 
     def get_revealed_commitment(
         self,
@@ -3533,6 +3805,46 @@ class Subtensor(SubtensorMixin):
         )
         return sim_swap_result.tao_fee
 
+    def get_stake_availability_for_coldkeys(
+        self,
+        coldkey_ss58s: list[str],
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+    ) -> dict:
+        """
+        Batch query of stake availability per coldkey and subnet.
+
+        Returns how much alpha each coldkey has staked on each subnet, how much is locked by conviction, and how much
+        is free to unstake right now. All values are in rao (raw integer units).
+
+        Parameters:
+            coldkey_ss58s: SS58 addresses of the coldkeys to query.
+            netuids: Subnet UIDs to limit the scan to. ``None`` scans all subnets.
+            block: The block number to query. If ``None``, queries the current block.
+
+        Returns:
+            A nested dict ``{coldkey_ss58: {netuid: {total, locked, available}}}``.
+            Each inner dict contains:
+
+            - ``total`` - all alpha staked on the subnet across all hotkeys (rao).
+            - ``locked`` - current locked mass after decay (rao).
+            - ``available`` - alpha that can be unstaked now, i.e. ``total - locked`` (rao).
+
+            Subnets with zero stake and zero lock are omitted.
+            Coldkeys from the request are always present (inner dict may be empty).
+
+        Example::
+
+            result = subtensor.get_stake_availability_for_coldkeys(["5HGj..."])
+            available_rao = result["5HGj..."][2]["available"]
+        """
+        return self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_availability_for_coldkeys",
+            params=[coldkey_ss58s, netuids],
+            block=block,
+        )
+
     def get_stake_lock(
         self,
         coldkey_ss58: str,
@@ -3710,34 +4022,45 @@ class Subtensor(SubtensorMixin):
         else:
             return lock_cost
 
+    def get_subnet_epoch_index(self, netuid: int, block: Optional[int] = None) -> int:
+        """Returns the monotonic epoch counter for the given subnet.
+
+        Parameters:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. If `None`, queries the current chain head.
+
+        Returns:
+            The current epoch index.
+        """
+        query = self.query_subtensor(
+            name="SubnetEpochIndex", block=block, params=[netuid]
+        )
+        return cast(int, query.value)
+
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[Union[list, "SubnetHyperparameters"]]:
-        """
-        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
-        the operational settings and rules governing the subnet's behavior.
+    ) -> Optional["SubnetHyperparameters"]:
+        """Retrieves the hyperparameters for a specific subnet.
+
+        Tries the v3 ``Vec<HyperparamEntry>`` runtime API first, then falls
+        back to v2 and v1 struct APIs at the requested block.
 
         Parameters:
             netuid: The network UID of the subnet to query.
             block: The blockchain block number for the query.
 
         Returns:
-            The subnet's hyperparameters, or `None` if not available.
-
-        Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
-        they interact with the network's consensus and incentive mechanisms.
+            The subnet's hyperparameters, or ``None`` if not available.
         """
-        result = self.query_runtime_api(
-            runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnet_hyperparams_v2",
-            params=[netuid],
-            block=block,
+        block_hash = self.determine_block_hash(block)
+        result = self._runtime_call_with_fallback(
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams_v3", [netuid]),
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams_v2", [netuid]),
+            ("SubnetInfoRuntimeApi", "get_subnet_hyperparams", [netuid]),
+            block_hash=block_hash,
+            default_value=None,
         )
-
-        if not result:
-            return None
-
-        return SubnetHyperparameters.from_dict(result)
+        return SubnetHyperparameters.from_any(result) if result else None
 
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
@@ -4196,31 +4519,30 @@ class Subtensor(SubtensorMixin):
         netuid: int,
         block: Optional[int] = None,
     ) -> bool:
-        """
-        Returns True if the current block is within the terminal freeze window of the tempo
-        for the given subnet. During this window, admin ops are prohibited to avoid interference
-        with validator weight submissions.
+        """Returns whether owner operations are currently blocked for the subnet.
+
+        Matches the chain's ``is_in_admin_freeze_window`` logic: a pending
+        triggered epoch in the future **or** fewer than ``admin_freeze_window``
+        blocks remaining until the next auto epoch.
 
         Parameters:
             netuid: The unique identifier of the subnet.
             block: The blockchain block number for the query.
 
         Returns:
-            bool: True if in freeze window, else False.
+            ``True`` if in freeze window, ``False`` otherwise.
         """
-        # SN0 doesn't have admin_freeze_window
         if netuid == 0:
             return False
 
-        next_epoch_start_block = self.get_next_epoch_start_block(
-            netuid=netuid, block=block
+        block_number = block or self.block
+        return epoch_schedule.is_in_admin_freeze_window(
+            tempo=self.tempo(netuid, block=block_number) or 0,
+            pending_epoch_at=self.get_pending_epoch_at(netuid, block=block_number),
+            last_epoch_block=self.get_last_epoch_block(netuid, block=block_number),
+            block_number=block_number,
+            admin_freeze_window=self.get_admin_freeze_window(block=block_number),
         )
-
-        if next_epoch_start_block is not None:
-            remaining = next_epoch_start_block - self.block
-            window = self.get_admin_freeze_window(block=block)
-            return remaining < window
-        return False
 
     def is_fast_blocks(self) -> bool:
         """Checks if the node is running with fast blocks enabled.
@@ -7307,6 +7629,53 @@ class Subtensor(SubtensorMixin):
             wait_for_revealed_execution=wait_for_revealed_execution,
         )
 
+    def root_set_activity_cutoff_factor(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        factor_milli: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the activity cutoff factor via sudo (root only).
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic.
+            netuid: The unique identifier of the subnet.
+            factor_milli: Activity cutoff factor in per-mille units.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return root_set_activity_cutoff_factor_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            factor_milli=factor_milli,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
     def root_set_pending_childkey_cooldown(
         self,
         wallet: "Wallet",
@@ -7344,6 +7713,53 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             cooldown=cooldown,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    def set_activity_cutoff_factor(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        factor_milli: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the activity cutoff factor for a subnet. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            factor_milli: Activity cutoff factor in per-mille units.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return set_activity_cutoff_factor_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            factor_milli=factor_milli,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -7680,6 +8096,53 @@ class Subtensor(SubtensorMixin):
             discord=subnet_identity.discord,
             description=subnet_identity.description,
             additional=subnet_identity.additional,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    def set_tempo(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        tempo: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Sets the epoch tempo for a subnet. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            tempo: New tempo value (blocks per epoch).
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return set_tempo_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            tempo=tempo,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,
@@ -8350,6 +8813,50 @@ class Subtensor(SubtensorMixin):
             origin_netuid=origin_netuid,
             destination_netuid=destination_netuid,
             amount=amount,
+            mev_protection=mev_protection,
+            period=period,
+            raise_error=raise_error,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_revealed_execution=wait_for_revealed_execution,
+        )
+
+    def trigger_epoch(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        *,
+        mev_protection: bool = DEFAULT_MEV_PROTECTION,
+        period: Optional[int] = DEFAULT_PERIOD,
+        raise_error: bool = False,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        wait_for_revealed_execution: bool = True,
+    ) -> ExtrinsicResponse:
+        """
+        Schedules an owner-triggered epoch to fire after the admin freeze window elapses. Owner (coldkey) only.
+
+        Parameters:
+            wallet: The wallet used to sign the extrinsic (coldkey must be the subnet owner).
+            netuid: The unique identifier of the subnet.
+            mev_protection: If `True`, encrypts and submits the transaction through the MEV Shield pallet to protect
+                against front-running and MEV attacks. The transaction remains encrypted in the mempool until validators
+                decrypt and execute it. If `False`, submits the transaction directly without encryption.
+            period: The number of blocks during which the transaction will remain valid after it's
+                submitted. If the transaction is not included in a block within that number of blocks, it will expire
+                and be rejected. You can think of it as an expiration date for the transaction.
+            raise_error: Raises a relevant exception rather than returning `False` if unsuccessful.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+            wait_for_revealed_execution: Whether to wait for the revealed execution of transaction if mev_protection used.
+
+        Returns:
+            ExtrinsicResponse: The result object of the extrinsic execution.
+        """
+        return trigger_epoch_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
             mev_protection=mev_protection,
             period=period,
             raise_error=raise_error,

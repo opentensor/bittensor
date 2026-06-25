@@ -33,6 +33,8 @@ class Proxy:
         self.kill_pure_proxy = subtensor.kill_pure_proxy
         self.poke_deposit = subtensor.poke_deposit
         self.proxy_announced = subtensor.proxy_announced
+        self.get_proxy_filter = subtensor.get_proxy_filter
+        self.get_proxy_types = subtensor.get_proxy_types
         self.proxy = subtensor.proxy
         self.reject_proxy_announcement = subtensor.reject_proxy_announcement
         self.remove_proxies = subtensor.remove_proxies

@@ -1,6 +1,6 @@
 # Changelog
 
-## 10.5.0 /2026-06-11
+## 10.5.0 /2026-06-25
 
 ## What's Changed
 * Fix for flaky test_staking tests by @thewhaleking in https://github.com/latent-to/bittensor/pull/3367
@@ -19,6 +19,16 @@
 * @kilyanni made their first contribution in https://github.com/latent-to/bittensor/pull/3377
 
 **Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.0...v10.5.0
+
+## 10.4.1 /2026-06-11
+
+## What's Changed
+
+* Pins cyscale to 0.4.0 to avoid accidental upgrades which break `Subtensor.get_root_claimable_all_rates`
+* Fix for newer aiohttp versions in testing
+* Improves flaky tests
+
+**Full Changelog**: https://github.com/latent-to/bittensor/compare/v10.4.0...v10.4.1
 
 ## 10.4.0 /2026-05-28
 
