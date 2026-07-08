@@ -224,11 +224,7 @@ def test_balance_mul_other_not_balance(
     """
     balance_ = Balance(balance)
     balance2_ = balance2
-    rao_: int
-    if isinstance(balance, int):
-        rao_ = balance
-    elif isinstance(balance, float):
-        rao_ = int(balance * pow(10, 9))
+    rao_ = balance_.rao
 
     prod_ = balance_ * balance2_
     assert isinstance(prod_, Balance)
@@ -248,11 +244,7 @@ def test_balance_rmul_other_not_balance(
     """
     balance_ = Balance(balance)
     balance2_ = balance2
-    rao_: int
-    if isinstance(balance, int):
-        rao_ = balance
-    elif isinstance(balance, float):
-        rao_ = int(balance * pow(10, 9))
+    rao_ = balance_.rao
 
     prod_ = balance2_ * balance_  # This is an rmul
     assert isinstance(prod_, Balance)
@@ -304,12 +296,8 @@ def test_balance_truediv_other_not_balance(
     """
     balance_ = Balance(balance)
     balance2_ = balance2
-    rao_: int
     rao2_: int
-    if isinstance(balance, int):
-        rao_ = balance
-    elif isinstance(balance, float):
-        rao_ = int(balance * pow(10, 9))
+    rao_ = balance_.rao
     # assume balance2 is a rao value
     rao2_ = balance2
 
@@ -388,12 +376,8 @@ def test_balance_floordiv_other_not_balance(
     """
     balance_ = Balance(balance)
     balance2_ = balance2
-    rao_: int
     rao2_: int
-    if isinstance(balance, int):
-        rao_ = balance
-    elif isinstance(balance, float):
-        rao_ = int(balance * pow(10, 9))
+    rao_ = balance_.rao
     # assume balance2 is a rao value
     rao2_ = balance2
 
@@ -518,6 +502,34 @@ def test_from_float():
 def test_from_rao():
     """Tests from_rao method call."""
     assert Balance.from_tao(1) == Balance(1000000000)
+
+
+@pytest.mark.parametrize(
+    "tao,expected_rao",
+    [
+        (1.001, 1001000000),
+        (1.003, 1003000000),
+        (0.001, 1000000),
+        (123.456, 123456000000),
+        (1.0, 1000000000),
+    ],
+    ids=[
+        "truncating-float-1.001",
+        "truncating-float-1.003",
+        "milli-tao",
+        "three-decimals",
+        "whole",
+    ],
+)
+def test_from_tao_no_float_truncation(tao, expected_rao):
+    """from_tao must convert tao to rao exactly; binary float math used to drop rao
+    (e.g. from_tao(1.001) returned 1000999999 rao, losing 1 rao)."""
+    assert Balance.from_tao(tao).rao == expected_rao
+
+
+def test_balance_init_float_no_float_truncation():
+    """Balance(float) takes tao and must not drop rao to float truncation either."""
+    assert Balance(1.001).rao == 1001000000
 
 
 @pytest.mark.parametrize(

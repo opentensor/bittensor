@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, Union
 
 from scalecodec.utils.math import (
@@ -7,6 +8,17 @@ from scalecodec.utils.math import (
 
 from bittensor.core import settings
 from bittensor.core.errors import BalanceTypeError, BalanceUnitMismatchError
+
+
+def _tao_to_rao(amount: Union[int, float]) -> int:
+    """Convert a tao amount to integer rao without floating-point truncation.
+
+    ``int(float_amount * 1e9)`` silently loses rao because binary floats cannot
+    represent most decimal fractions (e.g. ``1.001`` tao -> 1000999999 rao instead
+    of 1001000000). Routing through :class:`decimal.Decimal` from the value's
+    decimal string makes the conversion exact, so no rao is silently dropped.
+    """
+    return int(Decimal(str(amount)) * 1_000_000_000)
 
 
 def _check_currencies(self, other):
@@ -97,7 +109,7 @@ class Balance:
             self.rao = balance
         elif isinstance(balance, float):
             # Assume tao value for the float
-            self.rao = int(balance * pow(10, 9))
+            self.rao = _tao_to_rao(balance)
         else:
             raise TypeError(
                 f"Balance must be an int (rao) or a float (tao), not  `{type(balance)}`."
@@ -314,7 +326,7 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        rao_ = int(amount * pow(10, 9))
+        rao_ = _tao_to_rao(amount)
         return Balance(rao_).set_unit(netuid)
 
     @staticmethod
@@ -329,7 +341,7 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        rao_ = int(amount * pow(10, 9))
+        rao_ = _tao_to_rao(amount)
         return Balance(rao_).set_unit(netuid)
 
     @staticmethod
