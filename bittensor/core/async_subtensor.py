@@ -4903,7 +4903,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=block_hash,
         )
-        return result or []
+        return result.value or []
 
     async def get_start_call_delay(
         self,
