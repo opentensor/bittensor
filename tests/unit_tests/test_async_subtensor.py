@@ -2820,6 +2820,27 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
 
 
 @pytest.mark.asyncio
+async def test_get_all_subnets_info_returns_empty_on_rpc_error(mocker, subtensor):
+    """If the runtime call fails, gather(return_exceptions=True) yields the exception as
+    ``result``; get_all_subnets_info must return [] instead of crashing inside
+    SubnetInfo.list_from_dicts with a TypeError."""
+    mocker.patch.object(subtensor, "get_subnet_prices", return_value={})
+    mocker.patch.object(
+        subtensor,
+        "query_runtime_api",
+        side_effect=async_subtensor.SubstrateRequestException("rpc down"),
+    )
+    mocked_list_from_dicts = mocker.patch.object(
+        async_subtensor.SubnetInfo, "list_from_dicts"
+    )
+
+    result = await subtensor.get_all_subnets_info()
+
+    assert result == []
+    mocked_list_from_dicts.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_set_subnet_identity(mocker, subtensor, fake_wallet):
     """Verify that subtensor method `set_subnet_identity` calls proper function with proper arguments."""
     # Preps
@@ -3766,6 +3787,24 @@ async def test_all_subnets(subtensor, mocker):
         ]
     )
     assert result == mocked_di_list_from_dicts.return_value
+
+
+@pytest.mark.asyncio
+async def test_all_subnets_returns_none_on_rpc_error(subtensor, mocker):
+    """If the runtime call fails, gather(return_exceptions=True) yields the exception as
+    ``decoded``; all_subnets must return None (its documented failure value) instead of
+    raising TypeError while trying to iterate the exception."""
+    mocker.patch.object(subtensor, "determine_block_hash")
+    mocker.patch.object(subtensor, "get_subnet_prices", return_value={})
+    mocker.patch.object(
+        subtensor.substrate,
+        "runtime_call",
+        side_effect=async_subtensor.SubstrateRequestException("rpc down"),
+    )
+
+    result = await subtensor.all_subnets()
+
+    assert result is None
 
 
 @pytest.mark.asyncio

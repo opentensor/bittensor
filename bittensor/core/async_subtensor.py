@@ -1046,6 +1046,14 @@ class AsyncSubtensor(SubtensorMixin):
             return_exceptions=True,
         )
 
+        if isinstance(decoded, Exception):
+            # ``return_exceptions=True`` surfaces a failed runtime call as the
+            # ``decoded`` value; iterating it below would raise TypeError.
+            logging.warning(
+                f"Unable to fetch all subnets info for block {block}, block hash {block_hash}: {decoded}"
+            )
+            return None
+
         if not isinstance(subnet_prices, (SubstrateRequestException, ValueError)):
             for sn in decoded:
                 sn.update(
@@ -1409,6 +1417,13 @@ class AsyncSubtensor(SubtensorMixin):
             ),
             return_exceptions=True,
         )
+        if isinstance(result, Exception):
+            # ``return_exceptions=True`` surfaces a failed runtime call as the
+            # ``result`` value; SubnetInfo.list_from_dicts would then raise TypeError.
+            logging.warning(
+                f"Unable to fetch all subnets info for block {block}, block hash {block_hash}: {result}"
+            )
+            return []
         if not result:
             return []
 
