@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import copy
 import ssl
 from datetime import datetime, timezone
@@ -357,6 +358,19 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
+
+    @contextlib.asynccontextmanager
+    async def _ensure_connection(self):
+        """Ensure the substrate connection is open for the duration of a single call
+        without closing it afterwards.
+
+        Unlike ``async with self:``, this must be used by methods that run on a
+        long-lived, shared connection: ``__aexit__`` calls ``self.substrate.close()``,
+        so ``async with self:`` inside a method would close the caller's connection as
+        soon as the method returns, breaking every subsequent query on that subtensor.
+        """
+        await self.initialize()
+        yield
 
     # Helpers ==========================================================================================================
 
@@ -7216,7 +7230,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
-        async with self:
+        async with self._ensure_connection():
             if netuid == 0:
                 return await root_register_extrinsic(
                     subtensor=self,
@@ -8507,7 +8521,7 @@ class AsyncSubtensor(SubtensorMixin):
         Notes:
             - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
-        async with self:
+        async with self._ensure_connection():
             if netuid == 0:
                 return await root_register_extrinsic(
                     subtensor=self,
@@ -8586,7 +8600,7 @@ class AsyncSubtensor(SubtensorMixin):
             - Rate Limits: <https://docs.learnbittensor.org/learn/chain-rate-limits#registration-rate-limits>
         """
         check_balance_amount(limit_price)
-        async with self:
+        async with self._ensure_connection():
             return await register_limit_extrinsic(
                 subtensor=self,
                 wallet=wallet,
