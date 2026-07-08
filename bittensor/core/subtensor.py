@@ -900,7 +900,8 @@ class Subtensor(SubtensorMixin):
         call: Optional[list[int]] = self.get_hyperparameter(
             param_name="LastUpdate", netuid=netuid, block=block
         )
-        assert call is not None
+        if call is None:
+            return None
         return None if len(call) == 0 else (block - int(call[uid]))
 
     def blocks_until_next_epoch(
@@ -973,7 +974,9 @@ class Subtensor(SubtensorMixin):
 
         return bond_map
 
-    def commit_reveal_enabled(self, netuid: int, block: Optional[int] = None) -> bool:
+    def commit_reveal_enabled(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[bool]:
         """Check if commit-reveal mechanism is enabled for a given subnet at a specific block.
 
         Parameters:
@@ -981,7 +984,8 @@ class Subtensor(SubtensorMixin):
             block: The block number to query. If `None`, queries the current chain head.
 
         Returns:
-            True if commit-reveal mechanism is enabled, False otherwise.
+            True if commit-reveal mechanism is enabled, False otherwise, or `None` if the subnet
+            does not exist.
 
         Notes:
             - <https://docs.learnbittensor.org/glossary#commit-reveal>
@@ -990,10 +994,11 @@ class Subtensor(SubtensorMixin):
         call: Optional[bool] = self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
         )
-        assert call is not None
+        if call is None:
+            return None
         return call
 
-    def difficulty(self, netuid: int, block: Optional[int] = None) -> int:
+    def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
 
         This parameter determines the computational challenge required for neurons to participate in consensus and
@@ -1016,7 +1021,8 @@ class Subtensor(SubtensorMixin):
         call: Optional[int] = self.get_hyperparameter(
             param_name="Difficulty", netuid=netuid, block=block
         )
-        assert call is not None
+        if call is None:
+            return None
         return int(call)
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
