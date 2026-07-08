@@ -148,7 +148,8 @@ def submit_encrypted_extrinsic(
         inner_signing_keypair = getattr(wallet, sign_with)
 
         effective_period = resolve_mev_shield_period(period)
-        era = {"period": effective_period}
+        current_block = subtensor.substrate.get_block_number()
+        era = {"period": effective_period, "current": current_block}
 
         current_nonce = subtensor.substrate.get_account_next_index(
             account_address=inner_signing_keypair.ss58_address
@@ -173,6 +174,7 @@ def submit_encrypted_extrinsic(
             call=extrinsic_call,
             nonce=current_nonce,
             period=effective_period,
+            era_current=current_block,
             raise_error=raise_error,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

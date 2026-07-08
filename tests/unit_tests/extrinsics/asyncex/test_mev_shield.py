@@ -127,6 +127,7 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
     block_hash = "0xblockhash"
 
     mocked_unlock_wallet = mocker.patch.object(
@@ -143,6 +144,11 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = signed_extrinsic_hash_hex
@@ -221,7 +227,7 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -237,6 +243,7 @@ async def test_submit_encrypted_extrinsic_success_with_revealed_execution(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -272,6 +279,7 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
 
     mocked_unlock_wallet = mocker.patch.object(
         ExtrinsicResponse,
@@ -287,6 +295,11 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = signed_extrinsic_hash_hex
@@ -338,7 +351,7 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -354,6 +367,7 @@ async def test_submit_encrypted_extrinsic_success_without_revealed_execution(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -484,6 +498,7 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
     mev_ciphertext = b"fake_ciphertext"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
 
     mocked_unlock_wallet = mocker.patch.object(
         ExtrinsicResponse,
@@ -499,6 +514,11 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = "abcdef123456"
@@ -558,7 +578,7 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -574,6 +594,7 @@ async def test_submit_encrypted_extrinsic_encrypted_submitted_event_not_found(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -604,6 +625,7 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
     block_hash = "0xblockhash"
 
     mocked_unlock_wallet = mocker.patch.object(
@@ -620,6 +642,11 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = signed_extrinsic_hash_hex
@@ -695,7 +722,7 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -711,6 +738,7 @@ async def test_submit_encrypted_extrinsic_failed_to_find_outcome(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -747,6 +775,7 @@ async def test_submit_encrypted_extrinsic_execution_failure(
     signed_extrinsic_hash = f"0x{signed_extrinsic_hash_hex}"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
     block_hash = "0xblockhash"
     error_message = "Execution failed"
     formatted_error = "Formatted error: Execution failed"
@@ -765,6 +794,11 @@ async def test_submit_encrypted_extrinsic_execution_failure(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = signed_extrinsic_hash_hex
@@ -847,7 +881,7 @@ async def test_submit_encrypted_extrinsic_execution_failure(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -863,6 +897,7 @@ async def test_submit_encrypted_extrinsic_execution_failure(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -898,6 +933,7 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
     mev_ciphertext = b"fake_ciphertext"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
 
     mocked_unlock_wallet = mocker.patch.object(
         ExtrinsicResponse,
@@ -913,6 +949,11 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = "abcdef123456"
@@ -963,7 +1004,7 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -979,6 +1020,7 @@ async def test_submit_encrypted_extrinsic_sign_and_send_failure(
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -999,6 +1041,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
     mev_ciphertext = b"fake_ciphertext"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
 
     mocked_unlock_wallet = mocker.patch.object(
         ExtrinsicResponse,
@@ -1014,6 +1057,11 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = "abcdef123456"
@@ -1065,7 +1113,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
         call=call,
         keypair=fake_wallet.hotkey,
         nonce=next_nonce,
-        era={"period": 8},
+        era={"period": 8, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -1081,6 +1129,7 @@ async def test_submit_encrypted_extrinsic_with_hotkey(subtensor, fake_wallet, mo
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=8,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -1101,6 +1150,7 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
     mev_ciphertext = b"fake_ciphertext"
     current_nonce = 5
     next_nonce = 6
+    current_block = 12345
     period = 64
 
     mocked_unlock_wallet = mocker.patch.object(
@@ -1117,6 +1167,11 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
         subtensor.substrate,
         "get_account_next_index",
         new=mocker.AsyncMock(side_effect=[current_nonce, next_nonce]),
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "get_block_number",
+        new=mocker.AsyncMock(return_value=current_block),
     )
     mock_signed_extrinsic = mocker.MagicMock()
     mock_signed_extrinsic.extrinsic_hash.hex.return_value = "abcdef123456"
@@ -1168,7 +1223,7 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
         call=call,
         keypair=fake_wallet.coldkey,
         nonce=next_nonce,
-        era={"period": MAX_MEV_SHIELD_PERIOD},
+        era={"period": MAX_MEV_SHIELD_PERIOD, "current": current_block},
     )
     mocked_get_mev_shielded_ciphertext.assert_called_once_with(
         signed_ext=mock_signed_extrinsic,
@@ -1184,6 +1239,7 @@ async def test_submit_encrypted_extrinsic_with_period(subtensor, fake_wallet, mo
         call=mock_extrinsic_call,
         nonce=current_nonce,
         period=MAX_MEV_SHIELD_PERIOD,
+        era_current=current_block,
         raise_error=False,
         wait_for_inclusion=True,
         wait_for_finalization=False,
