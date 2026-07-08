@@ -248,3 +248,143 @@ def test_copy(mock_environment):
         metagraph.neurons, copied_metagraph.neurons
     ):
         assert original_neuron is copied_neuron
+
+
+def test_metagraph_restricted_unpickler_blocks_rce():
+    """Loading a metagraph state file must not execute arbitrary code (CWE-502).
+    The restricted unpickler must still round-trip legitimate state (numpy +
+    chain-data + Balance) while rejecting a __reduce__ bomb."""
+    import io
+    import pickle
+
+    from bittensor.core.metagraph import (
+        _RestrictedUnpickler,
+        _UnsafeMetagraphStateError,
+    )
+    from bittensor.core.chain_data import AxonInfo
+
+    legit = {
+        "stake": np.zeros((2, 2), dtype=np.float32),
+        "axons": [
+            AxonInfo(
+                version=1, ip="1.2.3.4", port=80, ip_type=4, hotkey="h", coldkey="c"
+            )
+        ],
+        "price": Balance.from_tao(1.0),
+    }
+    buf = io.BytesIO()
+    pickle.dump(legit, buf)
+    buf.seek(0)
+    out = _RestrictedUnpickler(buf).load()
+    assert out["axons"][0].ip == "1.2.3.4"
+    assert out["price"].tao == 1.0
+
+    class Bomb:
+        def __reduce__(self):
+            import os
+
+            return (os.system, ("echo pwned",))
+
+    mbuf = io.BytesIO()
+    pickle.dump({"x": Bomb()}, mbuf)
+    mbuf.seek(0)
+    with pytest.raises(_UnsafeMetagraphStateError):
+        _RestrictedUnpickler(mbuf).load()
+
+
+def test_nontorch_metagraph_rejects_unsafe_pickle_without_torch_fallback(
+    tmp_path, monkeypatch
+):
+    import pickle
+
+    import torch
+
+    from bittensor.core.metagraph import NonTorchMetagraph, _UnsafeMetagraphStateError
+
+    class Bomb:
+        def __reduce__(self):
+            import os
+
+            return (os.system, ("echo pwned",))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("unsafe pickle must not fall back to torch.load")
+
+    monkeypatch.setattr(torch, "load", fail_if_called)
+
+    graph_filename = tmp_path / "block-1.pt"
+    with graph_filename.open("wb") as graph_file:
+        pickle.dump({"x": Bomb()}, graph_file)
+
+    metagraph = NonTorchMetagraph(1, sync=False)
+    with pytest.raises(_UnsafeMetagraphStateError):
+        metagraph.load_from_path(str(tmp_path))
+
+
+def test_metagraph_restricted_unpickler_blocks_unlisted_callable_bypass():
+    import io
+    import pickle
+
+    from bittensor.core.metagraph import (
+        _RestrictedUnpickler,
+        _UnsafeMetagraphStateError,
+    )
+
+    class Bypass:
+        def __reduce__(self):
+            import subprocess
+
+            return (subprocess.call, ((("sh", "-c", "echo pwned"),)))
+
+    buf = io.BytesIO()
+    pickle.dump({"x": Bypass()}, buf)
+    buf.seek(0)
+    with pytest.raises(_UnsafeMetagraphStateError):
+        _RestrictedUnpickler(buf).load()
+
+
+def test_metagraph_restricted_unpickler_blocks_torch_load_bypass():
+    """A crafted snapshot must not escape the allow-list by invoking
+    ``torch.storage._load_from_bytes``, which PyTorch implements as
+    ``torch.load(io.BytesIO(b), weights_only=False)`` - i.e. unrestricted
+    unpickling. Admitting it would let an attacker nest an arbitrary-code
+    payload inside the bytes argument and regain RCE.
+
+    The inner payload is a *valid torch file* (built with ``torch.save``) so
+    that, if ``_load_from_bytes`` were ever re-admitted, ``torch.load`` would
+    actually execute it instead of bailing on a magic-number check. The
+    allow-list must reject the global up front."""
+    import io
+    import pickle
+
+    import torch
+
+    from bittensor.core.metagraph import (
+        _RestrictedUnpickler,
+        _UnsafeMetagraphStateError,
+    )
+
+    # Inner payload: a torch-format file wrapping a __reduce__ bomb that would
+    # run if ever handed to an unrestricted loader.
+    class Bomb:
+        def __reduce__(self):
+            import os
+
+            return (os.system, ("echo pwned",))
+
+    inner = io.BytesIO()
+    torch.save(Bomb(), inner)
+
+    # Outer wrapper: resolve torch.storage._load_from_bytes and hand it the
+    # malicious bytes. This mirrors how a real bypass payload would look.
+    class Bypass:
+        def __reduce__(self):
+            from torch.storage import _load_from_bytes
+
+            return (_load_from_bytes, (inner.getvalue(),))
+
+    buf = io.BytesIO()
+    pickle.dump({"x": Bypass()}, buf)
+    buf.seek(0)
+    with pytest.raises(_UnsafeMetagraphStateError):
+        _RestrictedUnpickler(buf).load()

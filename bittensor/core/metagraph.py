@@ -143,6 +143,25 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
+def _metagraph_chain_data_globals() -> list:
+    """The bittensor classes that may legitimately appear in a metagraph state file
+    (chain-data dataclasses and Balance). Used both as torch ``weights_only`` safe
+    globals and to validate the unpickle allow-list."""
+    import dataclasses
+    import inspect
+
+    import bittensor.core.chain_data as _chain_data
+    from bittensor.utils.balance import Balance
+
+    classes = [Balance]
+    for _name, obj in inspect.getmembers(_chain_data, inspect.isclass):
+        if obj.__module__.startswith(
+            "bittensor.core.chain_data"
+        ) and dataclasses.is_dataclass(obj):
+            classes.append(obj)
+    return classes
+
+
 def safe_globals():
     """
     Context manager to load torch files for version 2.6+
@@ -161,7 +180,71 @@ def safe_globals():
         np.dtypes.Float32DType,
         bytes,
     ]
+    allow_list.extend(_metagraph_chain_data_globals())
     return torch.serialization.safe_globals(allow_list)
+
+
+# Globals (``module.name``) that a metagraph NonTorch state file legitimately
+# references outside of the bittensor package: numpy primitives and a few
+# containers. Kept as an exact set (no wildcard) so dangerous builtins like
+# eval/exec/getattr are never admitted.
+#
+# Deliberately NO ``torch.*`` entries: this allow-list guards the *pickle*
+# NonTorch load path. Torch state files are loaded separately through
+# ``torch.load(..., weights_only=True)``. In particular ``torch.storage.
+# _load_from_bytes`` must NEVER be admitted here: PyTorch implements it as
+# ``torch.load(io.BytesIO(b), weights_only=False)``, so admitting it lets a
+# crafted snapshot re-enter unrestricted unpickling and regain arbitrary code
+# execution (CWE-502).
+_METAGRAPH_ALLOWED_EXACT_GLOBALS = frozenset(
+    {
+        "builtins.dict",
+        "builtins.list",
+        "builtins.tuple",
+        "builtins.set",
+        "builtins.frozenset",
+        "builtins.bytes",
+        "builtins.slice",
+        "builtins.complex",
+        "collections.OrderedDict",
+        "numpy.dtype",
+        "numpy.ndarray",
+        "numpy.core.multiarray._reconstruct",
+        "numpy._core.multiarray._reconstruct",
+        "numpy.core.multiarray.scalar",
+    }
+)
+# bittensor types may appear in a state file under these module prefixes.
+_METAGRAPH_ALLOWED_MODULE_PREFIXES = (
+    "bittensor.core.chain_data.",
+    "bittensor.utils.balance.",
+)
+
+
+class _UnsafeMetagraphStateError(pickle.UnpicklingError):
+    """Raised when a metagraph pickle references a known unsafe global."""
+
+
+class _RestrictedUnpickler(pickle.Unpickler):
+    """Unpickler restricted to the globals a metagraph state file may need.
+
+    ``pickle.load`` executes arbitrary code through ``__reduce__``, so loading an
+    untrusted metagraph snapshot is remote code execution (CWE-502). This unpickler
+    admits only the numpy/collections primitives and the bittensor chain-data
+    classes that NonTorch state files legitimately contain, and rejects anything
+    else (including every ``torch.*`` global - see _METAGRAPH_ALLOWED_EXACT_GLOBALS).
+    """
+
+    def find_class(self, module: str, name: str):
+        full = f"{module}.{name}"
+        if full in _METAGRAPH_ALLOWED_EXACT_GLOBALS or full.startswith(
+            _METAGRAPH_ALLOWED_MODULE_PREFIXES
+        ):
+            return super().find_class(module, name)
+        raise _UnsafeMetagraphStateError(
+            f"Refusing to unpickle forbidden global {full!r} from metagraph state "
+            "file; the file may be corrupt or tampered with."
+        )
 
 
 class MetagraphMixin(ABC):
@@ -1101,7 +1184,7 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
 
         graph_file = latest_block_path(dir_path)
         with safe_globals():
-            state_dict = torch.load(graph_file)
+            state_dict = torch.load(graph_file, weights_only=True)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
         self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
@@ -1218,7 +1301,10 @@ class NonTorchMetagraph(MetagraphMixin):
         graph_filename = latest_block_path(dir_path)
         try:
             with open(graph_filename, "rb") as graph_file:
-                state_dict = pickle.load(graph_file)
+                state_dict = _RestrictedUnpickler(graph_file).load()
+        except _UnsafeMetagraphStateError:
+            logging.error("Refusing to load unsafe metagraph state file.")
+            raise
         except pickle.UnpicklingError:
             logging.info(
                 "Unable to load file. Attempting to restore metagraph using torch."
@@ -1230,7 +1316,7 @@ class NonTorchMetagraph(MetagraphMixin):
                 import torch as real_torch
 
                 with safe_globals():
-                    state_dict = real_torch.load(graph_filename)
+                    state_dict = real_torch.load(graph_filename, weights_only=True)
                 for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
                     state_dict[key] = state_dict[key].detach().numpy()
                 del real_torch
