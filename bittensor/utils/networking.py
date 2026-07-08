@@ -66,6 +66,23 @@ def ip_version(str_val: str) -> int:
     return int(netaddr.IPAddress(str_val).version)
 
 
+def is_ssrf_target(ip: str) -> bool:
+    """Return ``True`` for IP addresses that are classic SSRF abuse targets and are
+    never legitimate axon endpoints.
+
+    Covers the IPv4 and IPv6 link-local ranges, which include the cloud
+    instance-metadata services (e.g. ``169.254.169.254``). A malicious axon
+    advertising such an address would otherwise make the dendrite fetch from the
+    host's metadata service. Only these ranges are flagged so that local
+    deployments (loopback / RFC1918) keep working.
+    """
+    try:
+        address = netaddr.IPAddress(ip)
+    except (netaddr.core.AddrFormatError, ValueError):
+        return False
+    return address.is_link_local()
+
+
 def ip__str__(ip_type: int, ip_str: str, port: int):
     """Return a formatted ip string"""
     return "/ipv%i/%s:%i" % (ip_type, ip_str, port)

@@ -64,6 +64,25 @@ def test_init(setup_dendrite):
     assert isinstance(setup_dendrite, Dendrite)
 
 
+def test_get_endpoint_url_blocks_ssrf_targets(setup_dendrite):
+    """A chain-advertised axon IP in a link-local/metadata range (the classic SSRF
+    target, e.g. cloud metadata) must be refused rather than turned into a URL."""
+    dendrite = setup_dendrite
+    metadata_axon = AxonInfo(
+        version=1, ip="169.254.169.254", port=80, ip_type=4, hotkey="h", coldkey="c"
+    )
+    with pytest.raises(ValueError):
+        dendrite._get_endpoint_url(metadata_axon, "Forward")
+
+    # a normal public IP is still turned into a URL (and self stays on 0.0.0.0)
+    public_axon = AxonInfo(
+        version=1, ip="203.0.113.5", port=8080, ip_type=4, hotkey="h", coldkey="c"
+    )
+    assert dendrite._get_endpoint_url(public_axon, "Forward") == (
+        "http://203.0.113.5:8080/Forward"
+    )
+
+
 def test_str(setup_dendrite):
     expected_string = f"dendrite({setup_dendrite.keypair.ss58_address})"
     assert str(setup_dendrite) == expected_string
