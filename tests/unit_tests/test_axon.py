@@ -261,6 +261,30 @@ async def test_priority_pass(middleware):
     assert synapse.axon.status_code != 408
 
 
+@pytest.mark.asyncio
+async def test_priority_passes_computed_priority_to_executor(middleware, mocker):
+    """The value returned by priority_fn must reach the executor's submit call as
+    ``priority=...``. Previously it was discarded: a no-op was submitted via
+    ``loop.run_in_executor`` (no ``priority`` kwarg), so the queue used a random priority."""
+
+    def my_priority_fn(synapse) -> float:
+        return 42.0
+
+    synapse = SynapseMock()
+    middleware.axon.priority_fns = {"SynapseMock": my_priority_fn}
+
+    fake_future = asyncio.Future()
+    fake_future.set_result(None)
+    mock_pool = mocker.MagicMock()
+    mock_pool.submit.return_value = fake_future
+    middleware.axon.thread_pool = mock_pool
+
+    await middleware.priority(synapse)
+
+    assert mock_pool.submit.call_count == 1
+    assert mock_pool.submit.call_args.kwargs.get("priority") == 42.0
+
+
 @pytest.mark.parametrize(
     "body, expected",
     [
