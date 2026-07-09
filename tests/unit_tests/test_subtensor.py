@@ -1989,6 +1989,27 @@ def test_difficulty_success(subtensor, mocker):
     assert result == int(mocked_get_hyperparameter.return_value)
 
 
+@pytest.mark.parametrize(
+    "getter,param_name,extra_kwargs",
+    [
+        ("difficulty", "Difficulty", {}),
+        ("commit_reveal_enabled", "CommitRevealWeightsEnabled", {}),
+        ("blocks_since_last_update", "LastUpdate", {"uid": 0}),
+    ],
+)
+def test_subnet_getter_returns_none_when_subnet_missing(
+    subtensor, mocker, getter, param_name, extra_kwargs
+):
+    """When the subnet/uid is absent, get_hyperparameter returns None; the getter must
+    return None (honouring its docstring) instead of raising AssertionError."""
+    mocker.patch.object(subtensor, "get_hyperparameter", return_value=None)
+    mocker.patch.object(subtensor, "get_current_block", return_value=1)
+
+    result = getattr(subtensor, getter)(netuid=999, block=1, **extra_kwargs)
+
+    assert result is None
+
+
 def test_recycle_success(subtensor, mocker):
     """Tests recycle method with successfully result."""
     # Preps
