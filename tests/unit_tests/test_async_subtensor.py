@@ -195,6 +195,31 @@ async def test_burned_register(subtensor, fake_wallet, mocker):
 
 
 @pytest.mark.asyncio
+async def test_register_family_does_not_close_shared_connection(
+    subtensor, fake_wallet, mocker
+):
+    """register/burned_register/register_limit must not close the substrate connection
+    they share with the caller. The old ``async with self:`` ran ``__aexit__`` ->
+    ``substrate.close()`` on return, breaking every later query on the same subtensor."""
+    mocker.patch.object(subtensor, "compose_call")
+    mocker.patch.object(
+        subtensor, "sign_and_send_extrinsic", return_value=ExtrinsicResponse(True, "")
+    )
+    mocker.patch.object(
+        subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=NeuronInfo.get_null_neuron(),
+    )
+    mocker.patch.object(subtensor, "get_balance", return_value=Balance.from_tao(1))
+    mocker.patch.object(subtensor, "recycle")
+
+    await subtensor.burned_register(wallet=fake_wallet, netuid=14)
+
+    # the connection the caller is sharing must be left open
+    subtensor.substrate.close.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_burned_register_on_root(mock_substrate, subtensor, fake_wallet, mocker):
     mock_substrate.submit_extrinsic.return_value = mocker.AsyncMock(
         is_success=mocker.AsyncMock(return_value=True)(),
