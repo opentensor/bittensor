@@ -233,6 +233,11 @@ class DendriteMixin:
         Returns:
             str: A string representing the complete HTTP URL for the request.
         """
+        if networking.is_ssrf_target(target_axon.ip):
+            raise ValueError(
+                f"Refusing to request {request_name} from axon at SSRF target "
+                f"address {target_axon.ip} (link-local/metadata range)."
+            )
         endpoint = (
             f"0.0.0.0:{str(target_axon.port)}"
             if target_axon.ip == str(self.external_ip)
@@ -635,12 +640,7 @@ class DendriteMixin:
 
         # Build request endpoint from the synapse class
         request_name = synapse.__class__.__name__
-        endpoint = (
-            f"0.0.0.0:{str(target_axon.port)}"
-            if target_axon.ip == str(self.external_ip)
-            else f"{target_axon.ip}:{str(target_axon.port)}"
-        )
-        url = f"http://{endpoint}/{request_name}"
+        url = self._get_endpoint_url(target_axon, request_name)
 
         # Preprocess synapse for making a request
         synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)  # type: ignore
