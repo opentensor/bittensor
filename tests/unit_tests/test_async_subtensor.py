@@ -1785,6 +1785,42 @@ async def test_sign_and_send_extrinsic_success_finalization(
 
 
 @pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_uses_era_current(subtensor, fake_wallet, mocker):
+    """Verify sign_and_send_extrinsic forwards an explicit era anchor."""
+    fake_call = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock()
+    fake_response.total_fee_amount = mocker.AsyncMock(return_value=1)()
+    fake_response.is_success = mocker.AsyncMock(return_value=True)()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        period=8,
+        era_current=12345,
+    )
+
+    mocked_create_signed_extrinsic.assert_awaited_once_with(
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+        era={"period": 8, "current": 12345},
+    )
+    mocked_submit_extrinsic.assert_awaited_once_with(
+        extrinsic=fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result.success is True
+    assert result.message == "Success"
+
+
+@pytest.mark.asyncio
 async def test_sign_and_send_extrinsic_error_finalization(
     subtensor, fake_wallet, mocker
 ):

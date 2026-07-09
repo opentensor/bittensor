@@ -6600,6 +6600,7 @@ class AsyncSubtensor(SubtensorMixin):
         nonce: Optional[int] = None,
         *,
         period: Optional[int] = DEFAULT_PERIOD,
+        era_current: Optional[int] = None,
         raise_error: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -6619,6 +6620,8 @@ class AsyncSubtensor(SubtensorMixin):
             period: The number of blocks during which the transaction will remain valid after it's submitted. If the
                 transaction is not included in a block within that number of blocks, it will expire and be rejected. You
                 can think of it as an expiration date for the transaction.
+            era_current: The block number to anchor the mortal era to. If not provided, the substrate interface chooses
+                the anchor.
             raise_error: Raises the relevant exception rather than returning `False` if unsuccessful.
             wait_for_inclusion: Whether to wait until the extrinsic call is included on the chain
             wait_for_finalization: Whether to wait until the extrinsic call is finalized on the chain
@@ -6657,6 +6660,8 @@ class AsyncSubtensor(SubtensorMixin):
 
         if period is not None:
             extrinsic_data["era"] = {"period": period}
+            if era_current is not None:
+                extrinsic_data["era"]["current"] = era_current
 
         extrinsic_response.extrinsic = await self.substrate.create_signed_extrinsic(
             **extrinsic_data

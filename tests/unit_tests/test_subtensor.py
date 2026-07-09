@@ -101,6 +101,45 @@ def test_methods_comparable(mock_substrate):
         )
 
 
+def test_sign_and_send_extrinsic_uses_era_current(subtensor, fake_wallet, mocker):
+    """Verify sign_and_send_extrinsic forwards an explicit era anchor."""
+    fake_call = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock(is_success=True, total_fee_amount=1)
+    fake_wallet.coldkey = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.patch.object(
+        subtensor.substrate,
+        "create_signed_extrinsic",
+        return_value=fake_extrinsic,
+    )
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate,
+        "submit_extrinsic",
+        return_value=fake_response,
+    )
+
+    result = subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        period=8,
+        era_current=12345,
+    )
+
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call,
+        keypair=fake_wallet.coldkey,
+        era={"period": 8, "current": 12345},
+    )
+    mocked_submit_extrinsic.assert_called_once_with(
+        extrinsic=fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result.success is True
+    assert result.message == "Success"
+
+
 def test_serve_axon_with_external_ip_set():
     internal_ip: str = "192.0.2.146"
     external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
