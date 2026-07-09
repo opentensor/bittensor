@@ -287,6 +287,26 @@ async def test_get_subnet_burn_cost(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_get_staking_hotkeys_returns_value(subtensor, mocker):
+    """get_staking_hotkeys must return the decoded list (``.value``), not the raw ScaleType."""
+    # Preps - mimic a ScaleType whose ``.value`` is the list of hotkey ss58 addresses
+    fake_hotkeys = ["5GrwvaEF...", "5FHneW46..."]
+    mocked_substrate_query = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query,
+        return_value=mocker.Mock(value=fake_hotkeys),
+    )
+    subtensor.substrate.query = mocked_substrate_query
+
+    # Call
+    result = await subtensor.get_staking_hotkeys(
+        coldkey_ss58="5DDjk9T2...", block_hash=None
+    )
+
+    # Assert - the decoded list is returned, not the wrapper object
+    assert result == fake_hotkeys
+
+
+@pytest.mark.asyncio
 async def test_get_total_subnets(subtensor, mocker):
     """Tests get_total_subnets method."""
     # Preps
