@@ -12,7 +12,7 @@ import typing
 import uuid
 import warnings
 from inspect import signature, Signature, Parameter
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Awaitable, Callable, Optional, Tuple
 
 from async_substrate_interface.utils import json
 from pydantic import ValidationError
@@ -1422,22 +1422,17 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         async def submit_task(
             executor: "PriorityThreadPoolExecutor", priority: float
-        ) -> tuple[float, Any]:
-            """
-            Submits the given priority function to the specified executor for asynchronous execution.
-            The function will run in the provided executor and return the priority value along with the result.
+        ) -> float:
+            """Submit the computed ``priority`` to the executor's priority queue.
 
-            Parameters:
-                executor: The executor in which the priority function will be run.
-                priority: The priority function to be executed.
-
-            Returns:
-                A tuple containing the priority value and the result of the priority function execution.
+            ``loop.run_in_executor(executor, fn)`` calls ``executor.submit(fn)`` without
+            the ``priority`` keyword, so the queue fell back to a random priority and the
+            value returned by ``priority_fn`` was effectively discarded. Submit directly
+            with the computed ``priority`` so it actually reaches the priority queue.
             """
-            loop = asyncio.get_running_loop()
-            future = loop.run_in_executor(executor, lambda: priority)
-            result_ = await future
-            return priority, result_
+            future = executor.submit(lambda: priority, priority=priority)
+            await asyncio.wrap_future(future)
+            return priority
 
         # If a priority function exists for the request's name
         if priority_fn:
@@ -1451,7 +1446,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
                 # Submit the task to the thread pool for execution with the given priority.
                 # The submit_task function will handle the execution and return the result.
-                _, result = await submit_task(self.axon.thread_pool, priority)
+                await submit_task(self.axon.thread_pool, priority)
 
             except TimeoutError as e:
                 # If the execution of the priority function exceeds the timeout,
