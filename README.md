@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.**
+>
+> Bittensor SDK development moved to the [subtensor monorepo](https://github.com/RaoFoundation/subtensor) (`sdk/python`), which ships as **Bittensor 11** — one package containing the SDK, `btcli`, and the wallet. Existing v10 releases remain installable from PyPI, but no further releases will be cut from this repository.
+
 <div align="center">
 
 # **Bittensor SDK** <!-- omit in toc -->
